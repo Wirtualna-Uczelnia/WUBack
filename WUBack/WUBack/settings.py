@@ -37,7 +37,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'githubwubacktest.herokuapp.com',
+    'wuback.herokuapp.com',
     'kk-demo.lightning.force.com']
 
 
@@ -122,13 +122,13 @@ DATABASES = {
 
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
 
-        'NAME': 'db1l8dp3vc69ns',
+        'NAME': 'd8rqfa5qb6lc7a',
 
-        'USER': 'ggwikdhzokgwui',
+        'USER': 'hiexvttzvtwcdu',
 
-        'PASSWORD': 'a2711b6baa2502c5be7d69a785bf4d86eec30129bd53c99e292caf2d41b3079c',
+        'PASSWORD': 'ae1d9fca957d44774b37b441f308f840d8f95c92b857650853a03fd4cc62c816',
 
-        'HOST': 'ec2-54-163-215-125.compute-1.amazonaws.com',
+        'HOST': 'ec2-18-206-84-251.compute-1.amazonaws.com',
 
         'PORT': '5432',
 
@@ -179,5 +179,3 @@ STATICFILE_DIRS = [
 ]
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
-# Activate Django-Heroku.

@@ -38,7 +38,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    'wuback.herokuapp.com',
+    'githubwubacktest.herokuapp.com',
     'kk-demo.lightning.force.com']
 
 
@@ -123,13 +123,13 @@ DATABASES = {
 
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
 
-        'NAME': 'dahbh8gsbs7nau',
+        'NAME': 'db1l8dp3vc69ns',
 
-        'USER': 'zwocsmnncljbvm',
+        'USER': 'ggwikdhzokgwui',
 
-        'PASSWORD': '2e638992a73f5d35c9784a68825803a5f0cb5baa2ee5d0e4b520d9d695397ca0',
+        'PASSWORD': 'a2711b6baa2502c5be7d69a785bf4d86eec30129bd53c99e292caf2d41b3079c',
 
-        'HOST': 'ec2-34-200-181-5.compute-1.amazonaws.com',
+        'HOST': 'ec2-54-163-215-125.compute-1.amazonaws.com',
 
         'PORT': '5432',
 

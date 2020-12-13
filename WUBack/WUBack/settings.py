@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 import os
-import django_heroku
 import dj_database_url
 
 if os.getcwd() == '/WUBack':
@@ -30,7 +29,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "6x6uzidctb)(6!%4#b8fgmp_=h!@iv%&3&^1^5orvl^efo-ynr"
+SECRET_KEY = "6x6uzidctb)(6!%4#b8fgmp_=h!@iv%&3&^1^5orvl^efo-sda"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -182,4 +181,3 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 # Activate Django-Heroku.
-django_heroku.settings(locals())

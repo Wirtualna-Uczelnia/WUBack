@@ -39,7 +39,7 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     'wuback.herokuapp.com',
     'kk-demo.lightning.force.com',
-    'wirtualna-uczelnia-7534a.web.app'
+    'https://wirtualna-uczelnia-7534a.web.app'
 ]
 
 

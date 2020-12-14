@@ -43,15 +43,16 @@ ALLOWED_HOSTS = [
 ]
 
 
-CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
-CORS_ORIGIN_WHITELIST = (
-    'http://localhost',
-    'http://127.0.0.1',
-    'https://wuback.herokuapp.com',
-    'kk-demo.lightning.force.com',
-    'https://wirtualna-uczelnia-7534a.web.app'
-)
+# CORS_ORIGIN_WHITELIST = (
+#     'http://localhost',
+#     'http://127.0.0.1',
+#     'https://wuback.herokuapp.com',
+#     'kk-demo.lightning.force.com',
+#     'https://wirtualna-uczelnia-7534a.web.app'
+# )
 
 # Application definition
 

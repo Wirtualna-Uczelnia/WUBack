@@ -38,7 +38,9 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     'wuback.herokuapp.com',
-    'kk-demo.lightning.force.com']
+    'kk-demo.lightning.force.com',
+    'wirtualna-uczelnia-7534a.web.app'
+]
 
 
 CORS_ALLOW_ALL_ORIGINS = True

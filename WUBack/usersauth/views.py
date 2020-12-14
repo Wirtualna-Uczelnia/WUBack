@@ -32,7 +32,8 @@ def login(request):
         }, JWT_SECRET, "HS256")
         response.set_cookie("access_token", value=jwt_token,
                             secure=True, httponly=True, max_age=120, samesite='None')
-        response.set_cookie('kasia', 'basia', samesite="None")
+        response.set_cookie('kasia', 'basia', samesite="None",
+                            secure=True, httponly=True)
         response['Access-Control-Allow-Credentials'] = 'true'
 
     else:

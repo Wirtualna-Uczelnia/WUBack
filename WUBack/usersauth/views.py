@@ -1,6 +1,6 @@
 from django.http import HttpResponse
 from usersauth.models import WU_User
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError
 
@@ -31,7 +31,7 @@ def login(request):
             "username": username
         }, JWT_SECRET, "HS256")
         response.set_cookie("access_token", value=jwt_token,
-                            secure=True, httponly=True, max_age=120)
+                            secure=True, httponly=True, max_age=120, samesite='None')
     else:
         response.content = 'Invalid login credentials'
         response.status_code = 401

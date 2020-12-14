@@ -34,7 +34,7 @@ def login(request):
                             secure=True, httponly=True, max_age=120, samesite='Lax')
         response.set_cookie('kasia', 'basia')
         response['Access-Control-Allow-Credentials'] = 'true'
-        response['Access-Control-Allow-Origin'] = 'wirtualna-uczelnia-7534a.web.app'
+        response['Access-Control-Allow-Origin'] = 'https://wirtualna-uczelnia-7534a.web.app'
 
     else:
         response.content = 'Invalid login credentials'

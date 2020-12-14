@@ -31,7 +31,8 @@ def login(request):
             "username": username
         }, JWT_SECRET, "HS256")
         response.set_cookie("access_token", value=jwt_token,
-                            secure=True, httponly=True, max_age=120, samesite='Lax')
+                            secure=True, httponly=True, max_age=120, samesite='Lax', domain='*')
+        response.set_cookie('kasia', 'basia')
     else:
         response.content = 'Invalid login credentials'
         response.status_code = 401

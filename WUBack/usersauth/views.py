@@ -113,12 +113,10 @@ def del_user(request):
         username = body['username']
         user = (WU_User.objects.filter(username=username))[0]
         user.delete()
-    except ObjectDoesNotExist:
-        return HttpResponse('User does not exist!', status=401)
     except Exception as _:
-        return HttpResponse('Weird problem', status=500)
+        return HttpResponse('User does not exist!\n', status=500)
 
-    return HttpResponse('User deleted', status=200)
+    return HttpResponse('User deleted\n', status=200)
 
 
 def is_expired(date):

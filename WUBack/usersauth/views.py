@@ -3,6 +3,7 @@ from usersauth.models import WU_User
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError
+from django.core.exceptions import ObjectDoesNotExist
 
 from django import forms
 import logging
@@ -103,6 +104,21 @@ def validate(request, code):
         return HttpResponse('Yayx, you can change this guy!\n', status=200)
 
     return HttpResponse('Too late, sorry mate\n', status=401)
+
+
+@csrf_exempt
+def del_user(request):
+    try:
+        body = json.loads(request.body.decode())
+        username = body['username']
+        user = (WU_User.objects.filter(username=username))[0]
+        user.delete()
+    except ObjectDoesNotExist:
+        return HttpResponse('User does not exist!', status=401)
+    except Exception as _:
+        return HttpResponse('Weird problem', status=500)
+
+    return HttpResponse('User deleted', status=200)
 
 
 def is_expired(date):

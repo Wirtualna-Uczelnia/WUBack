@@ -6,4 +6,5 @@ urlpatterns = [
     path('change/', views.change_pass),
     path('valid/<code>/', views.validate),
     path('login/', views.login),
+    path('delete/', views.del_user)
 ]

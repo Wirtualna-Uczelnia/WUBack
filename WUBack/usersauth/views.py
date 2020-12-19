@@ -36,6 +36,12 @@ def login(request):
         response_content = {key: sf_user_info[key]
                             for key in sf_user_info if key in returned_fields}
 
+        if not (user.first_name and user.last_name):
+            logger.info("zmieniam imie")
+            user.first_name, user.last_name = response_content[
+                'First_Name__c'], response_content['Lastname__c']
+            user.save()
+
         response.content = json.dumps(response_content)
         response.status_code = 200
         jwt_token = encode({

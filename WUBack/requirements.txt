@@ -6,3 +6,4 @@ pyjwt
 django-cors-headers
 gunicorn
 django-heroku
+requests

@@ -15,7 +15,8 @@ class WU_UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, password, code=None):
-        user = self.create_user(username=username, code=code, password=password)
+        user = self.create_user(
+            username=username, code=code, password=password)
         user.is_student = False
         user.is_admin = True
         user.is_staff = True
@@ -27,11 +28,15 @@ class WU_UserManager(BaseUserManager):
 
 class WU_User(AbstractBaseUser):
     username = models.CharField(max_length=10, unique=True)
+    first_name = models.CharField(max_length=20, null=True)
+    lastname = models.CharField(max_length=30, null=True)
+
     code = models.CharField(max_length=151, null=True)
     code_expiration_date = models.DateTimeField(
         verbose_name="code expiration date", null=True
     )
-    date_joined = models.DateTimeField(verbose_name="date joined", auto_now_add=True)
+    date_joined = models.DateTimeField(
+        verbose_name="date joined", auto_now_add=True)
     last_login = models.DateTimeField(verbose_name="last login", auto_now=True)
     is_student = models.BooleanField(default=True)
     is_admin = models.BooleanField(default=False)

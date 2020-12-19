@@ -59,6 +59,14 @@ def login(request):
 
 
 @csrf_exempt
+def logout(request):
+    response = HttpResponse("Logging out\n", status=200)
+    response.set_cookie("access_token", value="",
+                        secure=True, httponly=True, max_age=-1, samesite='None')
+    return response
+
+
+@csrf_exempt
 def create_user(request):
     batch = json.loads(request.body.decode())['users']
     created = 0

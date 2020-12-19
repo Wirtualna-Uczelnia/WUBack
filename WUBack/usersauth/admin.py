@@ -4,8 +4,9 @@ from usersauth.models import WU_User
 
 
 class WU_UserAdmin(UserAdmin):
-    list_display = ("username", "date_joined", "last_login", "is_student", "is_admin")
-    search_fields = ("username",)
+    list_display = ("username", "first_name", "last_name",
+                    "date_joined", "last_login", "is_student", "is_admin")
+    search_fields = ("username", "first_name", "last_name",)
     readonly_fields = ("date_joined", "last_login")
 
     filter_horizontal = ()

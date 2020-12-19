@@ -45,7 +45,8 @@ def login(request):
         response.content = json.dumps(response_content)
         response.status_code = 200
         jwt_token = encode({
-            "username": username
+            "username": username,
+            "member_type": response_content['Type_of_Member__c']
         }, JWT_SECRET, "HS256")
         response.set_cookie("access_token", value=jwt_token,
                             secure=True, httponly=True, max_age=120000, samesite='None')

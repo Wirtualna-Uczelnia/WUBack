@@ -8,10 +8,12 @@ from django.core.exceptions import ObjectDoesNotExist
 from django import forms
 import logging
 import json
+import requests
 from jwt import encode
 from datetime import datetime, timedelta
 from django.utils import timezone
 from hashlib import sha512
+
 
 logger = logging.getLogger('mylogger')
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
@@ -26,7 +28,15 @@ def login(request):
     response = HttpResponse()
 
     if user is not None:
-        response.content = f'User {username} has logged in'
+        access_token, instance_url = getSfInfo()
+        sf_user_info = requests.get(
+            instance_url+f"/services/data/v50.0/sobjects/Didactic_Group_Member__c/Login__c/{username}", headers={"Authorization": "Bearer "+access_token}).json()
+        returned_fields = ['First_Name__c', "Lastname__c", "Type_of_Member__c"]
+
+        response_content = {key: sf_user_info[key]
+                            for key in sf_user_info if key in returned_fields}
+
+        response.content = json.dumps(response_content)
         response.status_code = 200
         jwt_token = encode({
             "username": username
@@ -122,3 +132,16 @@ def del_user(request):
 def is_expired(date):
     today = timezone.now()
     return today > date
+
+
+def getSfInfo():
+    params_dict = {'grant_type': 'password',
+                   'client_id': '3MVG9SOw8KERNN09H9Ywj70jHzsxSfITp8bSXOp69yPjy4ZSWvhPi9pChcztDAo5UT8gSe9nHdHQcPlvLADp6',
+                   'client_secret': '386DEF04C4F6D5DE1217D6AD231C585AF802EA4ED331CB91BA8C5C5A8530806E',
+                   'username': 'integrationuser@kk-demo.com',
+                   'password': 'Integracja1iK03DXGbZpON8LbIpSqA474W'}
+
+    resp = requests.post(
+        'https://login.salesforce.com/services/oauth2/token', params=params_dict)
+
+    return resp.json()['access_token'], resp.json()['instance_url']

@@ -29,7 +29,7 @@ class WU_UserManager(BaseUserManager):
 class WU_User(AbstractBaseUser):
     username = models.CharField(max_length=10, unique=True)
     first_name = models.CharField(max_length=20, null=True)
-    lastname = models.CharField(max_length=30, null=True)
+    last_name = models.CharField(max_length=30, null=True)
 
     code = models.CharField(max_length=151, null=True)
     code_expiration_date = models.DateTimeField(

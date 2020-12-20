@@ -24,7 +24,7 @@ JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 def find_matching_names(request, pattern):
     response = HttpResponse()
     token = request.COOKIES['access_token']
-    if not can_i_do_stuff_the_role_can_do_having_such_token(token, "student"):
+    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
         response.status_code = 401
         return response
     matches = set(WU_User.objects.filter(first_name__iregex=r"^{}".format(pattern))) | set(

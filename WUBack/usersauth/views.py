@@ -48,7 +48,7 @@ def login(request):
             "username": username,
             "member_type": response_content['Type_of_Member__c']
         }, JWT_SECRET, "HS256")
-        response.set_cookie("access_token", value=jwt_token,
+        response.set_cookie("access_token", value=jwt_token.decode('utf-8'),
                             secure=True, httponly=True, max_age=120000, samesite='None')
         response.set_cookie('kasia', 'basia', samesite="None",
                             secure=True)

@@ -35,10 +35,10 @@ def find_matching_names(request):
     ) | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern)))
     matches = {
         "users": [
-            {'username': user.username, 
+            [{'username': user.username, 
             'firstname': user.first_name, 
             'lastname': user.last_name
-            'isStudent': user.is_student} for user in list(matches)[0:5]
+            'isStudent': user.is_student} for user in list(matches)[0:5]]
         ]
     }
     response.content = str(matches)

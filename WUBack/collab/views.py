@@ -33,15 +33,19 @@ def find_matching_names(request):
     matches = set(
         WU_User.objects.filter(first_name__iregex=r"^{}".format(pattern))
     ) | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern)))
-    matches = {
-        "users": [
-            [{'username': user.username, 
-            'firstname': user.first_name, 
-            'lastname': user.last_name
-            'isStudent': user.is_student} for user in list(matches)[0:5]]
-        ]
-    }
-    response.content = str(matches)
+
+    data = []
+    for i in range(5):
+        person = dict()
+        person["username"] = matches[i].username
+        person["firstname"] = matches[i].first_name
+        person["lastname"] = matches[i].last_name
+        person["isStudent"] = matches[i].is_student
+        data.append(person)
+    matches = dict()
+    matches["users"] = data
+
+    response.content = json.dumps(matches)
     return response
 
 

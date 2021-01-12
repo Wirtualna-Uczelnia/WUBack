@@ -35,14 +35,15 @@ def find_matching_names(request):
         | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern)))
     )
 
-    data = []
-    for i in range(5):
-        person = dict()
-        person["username"] = matches[i].username
-        person["firstname"] = matches[i].first_name
-        person["lastname"] = matches[i].last_name
-        person["isStudent"] = matches[i].is_student
-        data.append(person)
+    # data = []
+    # for i in range(5):
+    #     person = dict()
+    #     person["username"] = matches[i].username
+    #     person["firstname"] = matches[i].first_name
+    #     person["lastname"] = matches[i].last_name
+    #     person["isStudent"] = matches[i].is_student
+    #     data.append(person)
+    data = ["kasia", "asia"]
     matches = dict()
     matches["users"] = data
 

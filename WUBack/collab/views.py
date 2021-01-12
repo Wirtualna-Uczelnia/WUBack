@@ -36,13 +36,14 @@ def find_matching_names(request):
     )
 
     data = []
-    for i in range(5):
+    for i in min(range(5), len(matches)):
         person = dict()
         person["username"] = matches[i].username
         person["firstname"] = matches[i].first_name
         person["lastname"] = matches[i].last_name
         person["isStudent"] = matches[i].is_student
         data.append(person)
+
     matches = dict()
     matches["users"] = data
 

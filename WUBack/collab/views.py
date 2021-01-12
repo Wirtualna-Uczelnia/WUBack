@@ -16,22 +16,32 @@ from hashlib import sha512
 from jwt import decode, InvalidTokenError, encode
 
 
-logger = logging.getLogger('mylogger')
+logger = logging.getLogger("mylogger")
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
 
 @csrf_exempt
-def find_matching_names(request, pattern):
+def find_matching_names(request):
     response = HttpResponse()
-    token = request.COOKIES['access_token']
-    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
-        response.status_code = 401
-        return response
-    matches = set(WU_User.objects.filter(first_name__iregex=r"^{}".format(pattern))) | set(
-        WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern)))
-    matches = [(user.username, user.first_name, user.last_name)
-               for user in list(matches)]
-    response.content = str(matches[0:5])
+    body = json.loads(request.body.decode())
+    pattern = body["pattern"]
+
+    # token = request.COOKIES["access_token"]
+    # if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
+    #     response.status_code = 401
+    #     return response
+    matches = set(
+        WU_User.objects.filter(first_name__iregex=r"^{}".format(pattern))
+    ) | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern)))
+    matches = {
+        "users": [
+            {'username': user.username, 
+            'firstname': user.first_name, 
+            'lastname': user.last_name
+            'isStudent': user.is_student} for user in list(matches)[0:5]
+        ]
+    }
+    response.content = str(matches)
     return response
 
 
@@ -64,12 +74,12 @@ def can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, role):
 
     type_of_member = token["member_type"]
 
-    if role == 'teacher':
+    if role == "teacher":
         if type_of_member == "Student":
             return False
         elif type_of_member == "Teacher":
             return True
-    elif role == 'student':
+    elif role == "student":
         return True
 
     return False

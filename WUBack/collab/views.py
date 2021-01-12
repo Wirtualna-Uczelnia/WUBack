@@ -36,7 +36,7 @@ def find_matching_names(request):
     )
 
     data = []
-    for i in min(range(5), len(matches)):
+    for i in range(min(5, len(matches))):
         person = dict()
         person["username"] = matches[i].username
         person["firstname"] = matches[i].first_name

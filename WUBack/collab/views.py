@@ -31,12 +31,18 @@ def get_matching_names(request):
     #     response.status_code = 401
     #     return response
 
-    matches = set()
-    for pattern in patterns:
-        matches = matches | set(WU_User.objects.filter(
-            first_name__iregex=r"^{}".format(pattern)))
-        matches = matches | set(WU_User.objects.filter(
-            last_name__iregex=r"^{}".format(pattern)))
+    if len(patterns) > 1:
+        first = set(WU_User.objects.filter(
+            first_name__iregex=r"^{}".format(patterns[0])))
+        last = set(WU_User.objects.filter(
+            last_name__iregex=r"^{}".format(patterns[1])))
+        matches = first & last
+    else:
+        first = set(WU_User.objects.filter(
+            first_name__iregex=r"^{}".format(patterns[0])))
+        last = set(WU_User.objects.filter(
+            last_name__iregex=r"^{}".format(patterns[0])))
+        matches = first | last
 
     matches = list(matches)
     data = []

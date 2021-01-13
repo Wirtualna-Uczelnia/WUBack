@@ -24,15 +24,18 @@ JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 def get_matching_names(request):
     response = HttpResponse()
     body = json.loads(request.body.decode())
-    pattern = body["pattern"]
+    pattern = body["pattern"].split()
 
     # token = request.COOKIES["access_token"]
     # if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
     #     response.status_code = 401
     #     return response
     matches = list(
-        set(WU_User.objects.filter(first_name__iregex=r"^{}".format(pattern)))
-        | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern)))
+        set(WU_User.objects.filter(
+            first_name__iregex=r"^{}".format(pattern[0])))
+        | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern[0])))
+        | set(WU_User.objects.filter(first_name__iregex=r"^{}".format(pattern[1])))
+        | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern[1])))
     )
 
     data = []
@@ -51,7 +54,7 @@ def get_matching_names(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def add_member(request):
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
         response.status_code = 401
@@ -61,7 +64,7 @@ def add_member(request):
     # requests.post(body)
 
 
-@csrf_exempt
+@ csrf_exempt
 def remove_member(request):
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
         response.status_code = 401

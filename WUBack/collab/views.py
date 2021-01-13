@@ -21,7 +21,7 @@ JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
 
 @csrf_exempt
-def find_matching_names(request):
+def get_matching_names(request):
     response = HttpResponse()
     body = json.loads(request.body.decode())
     pattern = body["pattern"]

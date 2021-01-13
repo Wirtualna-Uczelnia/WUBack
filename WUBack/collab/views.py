@@ -34,7 +34,9 @@ def get_matching_names(request):
     matches = set()
     for pattern in patterns:
         matches = matches | set(WU_User.objects.filter(
-            first_name__iregex=r"^{}".format(pattern))) | set(WU_User.objects.filter(last_name__iregex=r"^{}".format(pattern)))
+            first_name__iregex=r"^{}".format(pattern)))
+        matches = matches | set(WU_User.objects.filter(
+            last_name__iregex=r"^{}".format(pattern)))
 
     matches = list(matches)
     data = []

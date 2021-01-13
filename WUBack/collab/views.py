@@ -32,11 +32,15 @@ def get_matching_names(request):
     #     return response
 
     if len(patterns) > 1:
-        first = set(WU_User.objects.filter(
+        first_1 = set(WU_User.objects.filter(
             first_name__iregex=r"^{}".format(patterns[0])))
-        last = set(WU_User.objects.filter(
+        last_1 = set(WU_User.objects.filter(
             last_name__iregex=r"^{}".format(patterns[1])))
-        matches = first & last
+        first_2 = set(WU_User.objects.filter(
+            first_name__iregex=r"^{}".format(patterns[1])))
+        last_2 = set(WU_User.objects.filter(
+            last_name__iregex=r"^{}".format(patterns[0])))
+        matches = (first_1 & last_1) | (first_2 & last_2)
     else:
         first = set(WU_User.objects.filter(
             first_name__iregex=r"^{}".format(patterns[0])))

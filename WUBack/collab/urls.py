@@ -5,5 +5,5 @@ urlpatterns = [
     path("getMatchingNames/", views.get_matching_names),
     path("addMember/", views.add_member),
     path("removeMember/", views.remove_member),
-    path("createTeam", views.add_team)
+    path("createTeam/", views.add_team)
 ]

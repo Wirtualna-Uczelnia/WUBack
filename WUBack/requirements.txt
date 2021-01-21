@@ -2,7 +2,7 @@ Django
 whitenoise
 dj-database-url
 psycopg2-binary>=2.8
-pyjwt
+pyjwt=1.6.1
 django-cors-headers
 gunicorn
 django-heroku

@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, response
 from usersauth.models import WU_User
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
@@ -15,6 +15,8 @@ from hashlib import sha512
 
 from jwt import decode, InvalidTokenError, encode
 
+from ..usersauth.views import getSfInfo
+
 
 logger = logging.getLogger("mylogger")
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
@@ -26,10 +28,10 @@ def get_matching_names(request):
     body = json.loads(request.body.decode())
     patterns = body["pattern"].split()
 
-    # token = request.COOKIES["access_token"]
-    # if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
-    #     response.status_code = 401
-    #     return response
+    token = request.COOKIES["access_token"]
+    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
+        response.status_code = 401
+        return response
 
     if len(patterns) > 1:
         first_1 = set(WU_User.objects.filter(
@@ -64,15 +66,65 @@ def get_matching_names(request):
     response.content = json.dumps(matches)
     return response
 
-
 @ csrf_exempt
 def add_member(request):
+    pass
+
+
+@ csrf_exempt
+def add_team(request):
+    response = HttpResponse()
+    token = request.COOKIES["access_token"]
+
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
         response.status_code = 401
         return response
 
     body = json.loads(request.body.decode())
-    # requests.post(body)
+    access_token, instance_url = getSfInfo()
+    create_team_data = {
+        "records" :[
+            {
+                "attributes" : {
+                    "type" : "Team__c"
+                },
+                "Subject__c": "Temat 1", # body['subject']
+                "Description__c": "Opis 1" # body['description']
+            },
+            ]
+        }
+
+    teams_id_list = requests.post(
+        instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_data,headers={"Authorization": "Bearer "+access_token}).json()
+    user_id = body['user_id']
+
+    if teams_id_list[0]['success']:
+        create_team_member_data = {
+            "records" :[
+                {
+                    "attributes" : {
+                        "type" : "Team_Member__c"
+                    },
+                    "Didactic_Group_Member__r": {
+                    "Login__c": "Kimkolwiek" # user_id
+                    },
+                    "Team__r": {
+                        "Id" : teams_id_list[0]['id']
+                    }    
+                },
+            ]
+        }
+
+        team_member_list = requests.post(
+            instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_member_data, headers={"Authorization": "Bearer "+access_token}).json()
+        if not team_member_list[0]['success']:
+            response.status_code = 404
+            response.content = "Error with adding team member"
+            return response
+
+    response.status_code = 200
+    response.content = "Team successfully added"
+    return response
 
 
 @ csrf_exempt

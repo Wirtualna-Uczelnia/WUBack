@@ -28,10 +28,10 @@ def get_matching_names(request):
     body = json.loads(request.body.decode())
     patterns = body["pattern"].split()
 
-#     token = request.COOKIES["access_token"]
-#     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
-#         response.status_code = 401
-#         return response
+    token = request.COOKIES["access_token"]
+    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
+        response.status_code = 401
+        return response
 
     if len(patterns) > 1:
         first_1 = set(WU_User.objects.filter(

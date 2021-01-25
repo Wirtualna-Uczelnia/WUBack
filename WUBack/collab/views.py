@@ -81,8 +81,8 @@ def add_team(request):
                 "attributes": {
                     "type": "Team__c"
                 },
-                "Subject__c": "Temat 1",  # body['subject']
-                "Description__c": "Opis 1"  # body['description']
+                "Subject__c": body['subject'],
+                "Description__c": body['description']
             },
         ]
     }
@@ -107,20 +107,20 @@ def add_team(request):
             }
         )
 
-        for member in body['team_members']:
-            members_list.append(
-                {
-                    "attributes": {
-                        "type": "Team_Member__c"
-                    },
-                    "Didactic_Group_Member__r": {
-                        "Login__c": member
-                    },
-                    "Team__r": {
-                        "Id": teams_id_list[0]['id']
-                    }
-                }
-            )
+        # for member in body['team_members']:
+        #     members_list.append(
+        #         {
+        #             "attributes": {
+        #                 "type": "Team_Member__c"
+        #             },
+        #             "Didactic_Group_Member__r": {
+        #                 "Login__c": member
+        #             },
+        #             "Team__r": {
+        #                 "Id": teams_id_list[0]['id']
+        #             }
+        #         }
+        #     )
 
         create_team_member_data = {
             "records": members_list

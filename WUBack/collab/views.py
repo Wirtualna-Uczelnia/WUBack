@@ -1,5 +1,5 @@
 from django.http import HttpResponse, response
-from WUBack.usersauth.models import WU_User
+from usersauth.models import WU_User
 from django.views.decorators.csrf import csrf_exempt
 
 from django import forms

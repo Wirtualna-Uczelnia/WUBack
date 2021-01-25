@@ -91,7 +91,7 @@ def add_team(request):
         instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_data, headers={"Authorization": "Bearer "+access_token}).json()
     teacher_id = body['teacher_id']
 
-    if teams_id_list[0]['success']:
+    if teams_id_list[0]['success'] is True:
         members_list = []
         members_list.append(
             {

@@ -89,7 +89,7 @@ def add_team(request):
 
     teams_id_list = requests.post(
         instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_data, headers={"Authorization": "Bearer "+access_token}).json()
-    user_id = body['user_id']
+    teacher_id = body['teacher_id']
 
     if teams_id_list[0]['success']:
         members_list = []
@@ -99,7 +99,7 @@ def add_team(request):
                     "type": "Team_Member__c"
                 },
                 "Didactic_Group_Member__r": {
-                    "Login__c": user_id
+                    "Login__c": teacher_id
                 },
                 "Team__r": {
                     "Id": teams_id_list[0]['id']

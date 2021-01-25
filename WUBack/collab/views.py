@@ -1,21 +1,13 @@
 from django.http import HttpResponse, response
-from usersauth.models import WU_User
-from django.contrib.auth import authenticate
+from WUBack.usersauth.models import WU_User
 from django.views.decorators.csrf import csrf_exempt
-from django.db import IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
 
 from django import forms
 import logging
 import json
 import requests
-from datetime import datetime, timedelta
-from django.utils import timezone
-from hashlib import sha512
 
-from jwt import decode, InvalidTokenError, encode
-
-
+from jwt import decode, InvalidTokenError
 
 
 logger = logging.getLogger("mylogger")
@@ -66,6 +58,7 @@ def get_matching_names(request):
     response.content = json.dumps(matches)
     return response
 
+
 @ csrf_exempt
 def add_member(request):
     pass
@@ -83,36 +76,54 @@ def add_team(request):
     body = json.loads(request.body.decode())
     access_token, instance_url = getSfInfo()
     create_team_data = {
-        "records" :[
+        "records": [
             {
-                "attributes" : {
-                    "type" : "Team__c"
+                "attributes": {
+                    "type": "Team__c"
                 },
-                "Subject__c": "Temat 1", # body['subject']
-                "Description__c": "Opis 1" # body['description']
+                "Subject__c": "Temat 1",  # body['subject']
+                "Description__c": "Opis 1"  # body['description']
             },
-            ]
-        }
+        ]
+    }
 
     teams_id_list = requests.post(
-        instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_data,headers={"Authorization": "Bearer "+access_token}).json()
+        instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_data, headers={"Authorization": "Bearer "+access_token}).json()
     user_id = body['user_id']
 
     if teams_id_list[0]['success']:
-        create_team_member_data = {
-            "records" :[
+        members_list = []
+        members_list.append(
+            {
+                "attributes": {
+                    "type": "Team_Member__c"
+                },
+                "Didactic_Group_Member__r": {
+                    "Login__c": user_id
+                },
+                "Team__r": {
+                    "Id": teams_id_list[0]['id']
+                }
+            }
+        )
+
+        for member in body['team_members']:
+            members_list.append(
                 {
-                    "attributes" : {
-                        "type" : "Team_Member__c"
+                    "attributes": {
+                        "type": "Team_Member__c"
                     },
                     "Didactic_Group_Member__r": {
-                    "Login__c": "Kimkolwiek" # user_id
+                        "Login__c": member
                     },
                     "Team__r": {
-                        "Id" : teams_id_list[0]['id']
-                    }    
-                },
-            ]
+                        "Id": teams_id_list[0]['id']
+                    }
+                }
+            )
+
+        create_team_member_data = {
+            "records": members_list
         }
 
         team_member_list = requests.post(
@@ -123,7 +134,7 @@ def add_team(request):
             return response
 
     response.status_code = 200
-    response.content = "Team successfully added"
+    response.content = {'team_id': teams_id_list[0]['id']}
     return response
 
 
@@ -155,6 +166,7 @@ def can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, role):
         return True
 
     return False
+
 
 def getSfInfo():
     params_dict = {'grant_type': 'password',

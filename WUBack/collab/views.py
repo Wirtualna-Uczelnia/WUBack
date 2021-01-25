@@ -61,7 +61,45 @@ def get_matching_names(request):
 
 @ csrf_exempt
 def add_member(request):
-    pass
+    response = HttpResponse()
+    token = request.COOKIES["access_token"]
+
+    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+    team_id = body['team_id']
+    access_token, instance_url = getSfInfo()
+
+    members_list = []
+
+    for member in body['team_members']:
+        members_list.append(
+            {
+                "attributes": {
+                    "type": "Team_Member__c"
+                },
+                "Didactic_Group_Member__r": {
+                    "Login__c": member
+                },
+                "Team__c": team_id
+            }
+        )
+
+    create_team_member_data = {
+        "records": members_list
+    }
+
+    team_member_list = requests.post(
+        instance_url+"/services/data/v48.0/composite/sobjects/", json=create_team_member_data, headers={"Authorization": "Bearer "+access_token}).json()
+    if not team_member_list[0].get('id'):
+        response.status_code = 404
+        response.content = "Error with adding team member"
+        return response
+
+    response.status_code = 200
+    return response
 
 
 @ csrf_exempt

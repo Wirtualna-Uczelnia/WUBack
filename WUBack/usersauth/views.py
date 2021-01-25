@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-from WUBack.usersauth.models import WU_User
+from .models import WU_User
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError

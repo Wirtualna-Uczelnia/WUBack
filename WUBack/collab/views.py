@@ -91,7 +91,7 @@ def add_team(request):
         instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_data, headers={"Authorization": "Bearer "+access_token}).json()
     teacher_id = body['teacher_id']
 
-    if teams_id_list[0].get('success'):
+    if teams_id_list[0].get('id'):
         members_list = []
         members_list.append(
             {
@@ -124,7 +124,7 @@ def add_team(request):
 
         team_member_list = requests.post(
             instance_url+"/services/data/v48.0/composite/sobjects/", data=create_team_member_data, headers={"Authorization": "Bearer "+access_token}).json()
-        if not team_member_list[0].get('success'):
+        if not team_member_list[0].get('id'):
             response.status_code = 404
             response.content = "Error with adding team member"
             return response

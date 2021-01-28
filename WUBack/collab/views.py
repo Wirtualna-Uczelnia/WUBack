@@ -177,12 +177,25 @@ def add_team(request):
 
 @ csrf_exempt
 def remove_member(request):
+    response = HttpResponse()
+    token = request.COOKIES["access_token"]
+
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
         response.status_code = 401
         return response
 
+    access_token, instance_url = getSfInfo()
+
+
     body = json.loads(request.body.decode())
-    # requests.post(body)
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Team__r.Id+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{body['login']}'+AND+Team__r.Id='{body['team_id']}'", headers={"Authorization": "Bearer "+access_token}).json()
+    team_member_id = sf_response['records'][0].get('Id')
+
+    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={team_member_id}", headers={"Authorization": "Bearer "+access_token})
+
+    response.status_code = 200
+    response.content = f"User {body['login']} successfully removed from team"
+    return response
 
 
 def can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, role):

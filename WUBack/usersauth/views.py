@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, response
 from .models import WU_User
 from django.contrib.auth import authenticate
 from django.views.decorators.csrf import csrf_exempt
@@ -13,11 +13,30 @@ from jwt import encode
 from datetime import datetime, timedelta
 from django.utils import timezone
 from hashlib import sha512
+from uuid import uuid4
 
 
 logger = logging.getLogger('mylogger')
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
+@csrf_exempt
+def generate_change_password_code(request):
+    body = json.loads(request.body.decode())
+    login = body.get("login")
+    user = (WU_User.objects.filter(username=login))[0]
+    if not user:
+        return HttpResponse("Username doesn't exist\n", status=401)
+
+    code = str(uuid4())
+    access_token, instance_url = getSfInfo()
+
+    ### tu potrzebujemy endpointa od krzyśka ###
+    # requests.post(jakiś url, params={"code": code})
+
+    user.code = code
+    user.code_expiration_date = datetime.now() + timedelta(minutes=30)
+    user.save()
+    return HttpResponse("Code generated", 200)
 
 @csrf_exempt
 def login(request):
@@ -94,8 +113,8 @@ def create_user(request):
 @csrf_exempt
 def change_pass(request):
     body = json.loads(request.body.decode())
-    code = body['code']
-    new_password = body['new_password']
+    code = body.get('code')
+    new_password = body.get('new_password')
 
     if not code or not new_password:
         return HttpResponse('Cannot have neither empty code nor empty password\n', status=400)

@@ -7,5 +7,6 @@ urlpatterns = [
     path('valid/<code>/', views.validate),
     path('login/', views.login),
     path('delete/', views.del_user),
-    path('logout/', views.logout)
+    path('logout/', views.logout),
+    path('generateCode/', views.generate_change_password_code)
 ]

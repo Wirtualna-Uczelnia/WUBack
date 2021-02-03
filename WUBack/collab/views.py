@@ -13,12 +13,23 @@ from jwt import decode, InvalidTokenError
 logger = logging.getLogger("mylogger")
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
+@csrf_exempt
+def get_paginated_team_list(request):
+    token = request.COOKIE.get("access_token")
+
+# SELECT Id, Subject__c, Description__c FROM Team__c WHERE Id IN (SELECT Team__c from Team_Member__c WHERE Didactic_Group_Member_Login__c = 'zawadap4')
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+    
+    body = json.loads(request.body.decode())
+
 
 @csrf_exempt
 def get_matching_names(request):
     response = HttpResponse()
-    body = json.loads(request.body.decode())
-    patterns = body["pattern"].split()
 
     token = request.COOKIES.get("access_token")
 
@@ -26,6 +37,16 @@ def get_matching_names(request):
         response.content = "No access token cookie"
         response.status_code = 401
         return response
+
+    body = json.loads(request.body.decode())
+    pattern = body.get("pattern")
+
+    if not pattern:
+        response.content = "Pattern not provided"
+        response.status_code = 400
+        return response
+
+    patterns = pattern.split()
 
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
         response.status_code = 401
@@ -75,13 +96,14 @@ def add_member(request):
         response.status_code = 401
         return response
 
-    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
+    access_token, instance_url = check_access(token, "teacher")
+
+    if not access_token:
         response.status_code = 401
         return response
 
     body = json.loads(request.body.decode())
     team_id = body['team_id']
-    access_token, instance_url = getSfInfo()
 
     members_list = []
 
@@ -123,12 +145,13 @@ def add_team(request):
         response.status_code = 401
         return response
 
-    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
+    access_token, instance_url = check_access(token, "teacher")
+
+    if not access_token:
         response.status_code = 401
         return response
 
     body = json.loads(request.body.decode())
-    access_token, instance_url = getSfInfo()
     create_team_data = {
         "records": [
             {
@@ -201,12 +224,11 @@ def remove_member(request):
         response.status_code = 401
         return response
 
-    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
+    access_token, instance_url = check_access(token, "teacher")
+
+    if not access_token:
         response.status_code = 401
         return response
-
-    access_token, instance_url = getSfInfo()
-
 
     body = json.loads(request.body.decode())
     sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Team__r.Id+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{body['login']}'+AND+Team__r.Id='{body['team_id']}'", headers={"Authorization": "Bearer "+access_token}).json()
@@ -217,6 +239,11 @@ def remove_member(request):
     response.status_code = 200
     response.content = f"User {body['login']} successfully removed from team"
     return response
+
+def check_access(token, role):
+    if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, role):
+        return False, False
+    return getSfInfo()
 
 
 def can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, role):

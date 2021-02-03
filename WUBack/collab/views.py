@@ -21,6 +21,12 @@ def get_matching_names(request):
     patterns = body["pattern"].split()
 
     token = request.COOKIES["access_token"]
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "student"):
         response.status_code = 401
         return response
@@ -64,6 +70,11 @@ def add_member(request):
     response = HttpResponse()
     token = request.COOKIES["access_token"]
 
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
         response.status_code = 401
         return response
@@ -106,6 +117,11 @@ def add_member(request):
 def add_team(request):
     response = HttpResponse()
     token = request.COOKIES["access_token"]
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
 
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
         response.status_code = 401
@@ -179,6 +195,11 @@ def add_team(request):
 def remove_member(request):
     response = HttpResponse()
     token = request.COOKIES["access_token"]
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
 
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, "teacher"):
         response.status_code = 401

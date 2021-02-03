@@ -20,7 +20,7 @@ def get_matching_names(request):
     body = json.loads(request.body.decode())
     patterns = body["pattern"].split()
 
-    token = request.COOKIES["access_token"]
+    token = request.COOKIES.get("access_token")
 
     if not token:
         response.content = "No access token cookie"
@@ -68,7 +68,7 @@ def get_matching_names(request):
 @ csrf_exempt
 def add_member(request):
     response = HttpResponse()
-    token = request.COOKIES["access_token"]
+    token = request.COOKIES.get("access_token")
 
     if not token:
         response.content = "No access token cookie"
@@ -116,7 +116,7 @@ def add_member(request):
 @ csrf_exempt
 def add_team(request):
     response = HttpResponse()
-    token = request.COOKIES["access_token"]
+    token = request.COOKIES.get("access_token")
 
     if not token:
         response.content = "No access token cookie"
@@ -194,7 +194,7 @@ def add_team(request):
 @ csrf_exempt
 def remove_member(request):
     response = HttpResponse()
-    token = request.COOKIES["access_token"]
+    token = request.COOKIES.get("access_token")
 
     if not token:
         response.content = "No access token cookie"

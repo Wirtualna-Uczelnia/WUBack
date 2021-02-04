@@ -13,11 +13,11 @@ from jwt import decode, InvalidTokenError
 logger = logging.getLogger("mylogger")
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
-@csrf_exempt
-def get_paginated_team_list(request):
-    token = request.COOKIE.get("access_token")
 
-# SELECT Id, Subject__c, Description__c FROM Team__c WHERE Id IN (SELECT Team__c from Team_Member__c WHERE Didactic_Group_Member_Login__c = 'zawadap4')
+@csrf_exempt
+def get_team_info(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
 
     if not token:
         response.content = "No access token cookie"
@@ -25,6 +25,65 @@ def get_paginated_team_list(request):
         return response
     
     body = json.loads(request.body.decode())
+    team_id = body.get("id")
+
+    if not team_id:
+        response.content = "Team id not provided"
+        response.status_code = 400
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+# SELECT Id, Subject__c, Description__c FROM Team__c WHERE Id={team_id}
+
+# SELECT Id, Login__c, Firstname__c, Lastname__c WHERE Login__c IN (SELECT Didactic_Group_Member_Login__c FROM Team_Member__c WHERE Team__c={team_id})
+
+    team_info = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()
+    team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Login__c,First_Name__c,Lastname__c+FROM+Didactic_Group_Member__c+WHERE+Login__c+IN+(SELECT+Didactic_Group_Member_Login__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}')", headers={"Authorization": "Bearer "+access_token}).json()
+
+    response.content = json.dumps({"team_info": team_info, "team_members": team_members})
+    response.status_code = 200
+    return response
+
+@csrf_exempt
+def get_paginated_team_list(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+    
+    body = json.loads(request.body.decode())
+    page_number = body.get("page")
+
+    if not page_number:
+        response.content = "No page number provided"
+        response.status_code = 400
+        return response
+
+    page_number = int(page_number)
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{body['login']}')", headers={"Authorization": "Bearer "+access_token}).json()
+    team_list_size, team_list = sf_response.get('totalSize'), sf_response.get('records')
+
+    team_list = [{key: team[key] for key in team if key != 'attributes'} for team in team_list[(page_number-1)*5:page_number*5]]
+    
+    response.content = json.dumps({"size": team_list_size, "teams": team_list})
+    response.status_code = 200
+    
+    return response
+    
 
 
 @csrf_exempt

@@ -56,7 +56,6 @@ def login(request):
                             for key in sf_user_info if key in returned_fields}
 
         if not (user.first_name and user.last_name):
-            logger.info("zmieniam imie")
             user.first_name, user.last_name = response_content[
                 'First_Name__c'], response_content['Lastname__c']
             user.save()

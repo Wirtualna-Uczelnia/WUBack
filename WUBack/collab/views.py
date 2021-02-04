@@ -38,14 +38,16 @@ def get_team_info(request):
         response.status_code = 401
         return response
 
-# SELECT Id, Subject__c, Description__c FROM Team__c WHERE Id={team_id}
-
-# SELECT Id, Login__c, Firstname__c, Lastname__c WHERE Login__c IN (SELECT Didactic_Group_Member_Login__c FROM Team_Member__c WHERE Team__c={team_id})
-
     team_info = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()
-    team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Login__c,First_Name__c,Lastname__c+FROM+Didactic_Group_Member__c+WHERE+Login__c+IN+(SELECT+Didactic_Group_Member_Login__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}')", headers={"Authorization": "Bearer "+access_token}).json()
+    team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()
 
-    response.content = json.dumps({"team_info": team_info, "team_members": team_members})
+    team_members_dict = [{"id": team_member.get('Id'), 'login': team_member.get('Didactic_Group_Member_Login__c')} for team_member in team_members.get('records')]
+
+    team_members_info = [{"first_name": user.first_name, "last_name": user.last_name} for user in [(WU_User.objects.filter(username=team_member['login']))[0] for team_member in team_members_dict]]
+
+    [team_members_dict[i].update(team_members_info[i]) for i in range(0,len(team_members_dict))]
+
+    response.content = json.dumps({"id": team_info['records'][0].get('Id'), "subject": team_info['records'][0].get('Subject__c'), "description": team_info['records'][0].get('Description__c'), "team_members": team_members_dict})
     response.status_code = 200
     return response
 

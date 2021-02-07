@@ -7,5 +7,9 @@ urlpatterns = [
     path("removeMember/", views.remove_member),
     path("createTeam/", views.add_team),
     path("getTeams/", views.get_paginated_team_list),
-    path("teamInfo/", views.get_team_info)
+    path("teamInfo/", views.get_team_info),
+    path("createEvent/", views.create_event),
+    path("editEvent/", views.edit_event),
+    path("removeEvent/", views.remove_event),
+    path("getEvents/", views.get_events),
 ]

@@ -14,6 +14,7 @@ from datetime import datetime
 logger = logging.getLogger("mylogger")
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
+
 @csrf_exempt
 def get_events(request):
     response = HttpResponse()
@@ -37,12 +38,14 @@ def get_events(request):
         response.content = "Event start date or end date not provided"
         response.status_code = 400
         return response
-    
+
     team_id = body.get('team_id')
 
-    sf_respone = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Team__c,Meeting_link__c+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()
+    sf_respone = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={
+                              "Authorization": "Bearer "+access_token}).json()
 
-    events_list = [{key: event[key] for key in event if key != 'attributes'} for event in sf_respone.get('records') if is_between_dates(event, start_date, end_date)]
+    events_list = [{key: event[key] for key in event if key != 'attributes'}
+                   for event in sf_respone.get('records') if is_between_dates(event, start_date, end_date)]
 
     response.status_code = 200
     response.content = json.dumps({"records": events_list})
@@ -68,8 +71,9 @@ def remove_event(request):
     body = json.loads(request.body.decode())
     event_id = body.get('event_id')
 
-    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={event_id}", headers={"Authorization": "Bearer "+access_token})
-    
+    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={event_id}", headers={
+                    "Authorization": "Bearer "+access_token})
+
     response.status_code = 200
     response.content = "Event successfully removed"
     return response
@@ -92,10 +96,10 @@ def edit_event(request):
         return response
 
     event_dict = {
-            "attributes" : {
-                "type" : "Event__c"
-            }
+        "attributes": {
+            "type": "Event__c"
         }
+    }
 
     body = json.loads(request.body.decode())
     event_info = body.get('event_info')
@@ -108,17 +112,19 @@ def edit_event(request):
     event_dict.update(event_info)
 
     event_dict = {
-        "allOrNone" : False,
-        "records" : [
+        "allOrNone": False,
+        "records": [
             event_dict
         ]
     }
 
-    requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/", json=event_dict, headers={"Authorization": "Bearer "+access_token})
-    
+    requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                   json=event_dict, headers={"Authorization": "Bearer "+access_token})
+
     response.status_code = 200
     response.content = "Event successfully edited"
     return response
+
 
 @csrf_exempt
 def create_event(request):
@@ -137,9 +143,9 @@ def create_event(request):
         return response
 
     event_dict = {
-        "attributes" : {
-            "type" : "Event__c"
-        }, 
+        "attributes": {
+            "type": "Event__c"
+        },
         "Meeting_link__c": "www.kurnik.pl"
     }
 
@@ -153,12 +159,14 @@ def create_event(request):
 
     event_dict.update(event_info)
     event_dict = {"records": [event_dict]}
-        
-    sf_response = requests.post(instance_url + f"/services/data/v48.0/composite/sobjects/", json=event_dict, headers={"Authorization": "Bearer "+access_token}).json()
-    
+
+    sf_response = requests.post(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                                json=event_dict, headers={"Authorization": "Bearer "+access_token}).json()
+
     response.status_code = 200
     response.content = json.dumps({'id': sf_response[0].get('id')})
     return response
+
 
 @csrf_exempt
 def get_team_info(request):
@@ -169,7 +177,7 @@ def get_team_info(request):
         response.content = "No access token cookie"
         response.status_code = 401
         return response
-    
+
     body = json.loads(request.body.decode())
     team_id = body.get("id")
 
@@ -184,17 +192,24 @@ def get_team_info(request):
         response.status_code = 401
         return response
 
-    team_info = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()['records'][0]
-    team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()
+    team_info = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id='{team_id}'", headers={
+                             "Authorization": "Bearer "+access_token}).json()['records'][0]
+    team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}'", headers={
+                                "Authorization": "Bearer "+access_token}).json()
 
-    team_members_dict = [{"id": team_member.get('Id'), 'login': team_member.get('Didactic_Group_Member_Login__c')} for team_member in team_members.get('records')]
-    team_members_info = [{"first_name": user.first_name, "last_name": user.last_name} for user in [(WU_User.objects.filter(username=team_member['login']))[0] for team_member in team_members_dict]]
+    team_members_dict = [{"id": team_member.get('Id'), 'login': team_member.get(
+        'Didactic_Group_Member_Login__c')} for team_member in team_members.get('records')]
+    team_members_info = [{"first_name": user.first_name, "last_name": user.last_name} for user in [
+        (WU_User.objects.filter(username=team_member['login']))[0] for team_member in team_members_dict]]
 
-    for d,i in zip(team_members_dict, team_members_info): d.update(i)
+    for d, i in zip(team_members_dict, team_members_info):
+        d.update(i)
 
-    response.content = json.dumps({"id": team_info.get('Id'), "subject": team_info.get('Subject__c'), "description": team_info.get('Description__c'), "team_members": team_members_dict})
+    response.content = json.dumps({"id": team_info.get('Id'), "subject": team_info.get(
+        'Subject__c'), "description": team_info.get('Description__c'), "team_members": team_members_dict})
     response.status_code = 200
     return response
+
 
 @csrf_exempt
 def get_paginated_team_list(request):
@@ -205,7 +220,7 @@ def get_paginated_team_list(request):
         response.content = "No access token cookie"
         response.status_code = 401
         return response
-    
+
     body = json.loads(request.body.decode())
     page_number = body.get("page")
 
@@ -221,16 +236,18 @@ def get_paginated_team_list(request):
         response.status_code = 401
         return response
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{decode(token, JWT_SECRET).get('username')}')", headers={"Authorization": "Bearer "+access_token}).json()
-    team_list_size, team_list = sf_response.get('totalSize'), sf_response.get('records')
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{decode(token, JWT_SECRET).get('username')}')", headers={
+                               "Authorization": "Bearer "+access_token}).json()
+    team_list_size, team_list = sf_response.get(
+        'totalSize'), sf_response.get('records')
 
-    team_list = [{key: team[key] for key in team if key != 'attributes'} for team in team_list[(page_number-1)*5:page_number*5]]
-    
+    team_list = [{key: team[key] for key in team if key != 'attributes'}
+                 for team in team_list[(page_number-1)*5:page_number*5]]
+
     response.content = json.dumps({"size": team_list_size, "teams": team_list})
     response.status_code = 200
-    
+
     return response
-    
 
 
 @csrf_exempt
@@ -437,15 +454,19 @@ def remove_member(request):
 
     body = json.loads(request.body.decode())
     team_members_logins = "'"+"','".join(body['team_members'])+"'"
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Team__r.Id+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c+IN+({team_members_logins})+AND+Team__r.Id='{body['team_id']}'", headers={"Authorization": "Bearer "+access_token}).json()
-    
-    team_member_ids = str([s.get('Id') for s in sf_response['records']]).replace("'", "").replace(" ","")[1:-1]
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Team__r.Id+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c+IN+({team_members_logins})+AND+Team__r.Id='{body['team_id']}'", headers={
+                               "Authorization": "Bearer "+access_token}).json()
 
-    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={team_member_ids}&allOrNone=false", headers={"Authorization": "Bearer "+access_token})
+    team_member_ids = str([s.get('Id') for s in sf_response['records']]).replace(
+        "'", "").replace(" ", "")[1:-1]
+
+    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={team_member_ids}&allOrNone=false", headers={
+                    "Authorization": "Bearer "+access_token})
 
     response.status_code = 200
     response.content = f"Users {team_members_logins} successfully removed from team"
     return response
+
 
 def check_access(token, role):
     if not can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, role):
@@ -472,6 +493,7 @@ def can_i_do_stuff_the_role_or_above_can_do_having_such_token(token, role):
 
     return False
 
+
 def is_between_dates(event, start_date, end_date):
     event_start_date = datetime.fromisoformat(event.get("Start_Date__c")[:-5])
     event_end_date = datetime.fromisoformat(event.get("End_Date__c")[:-5])
@@ -482,6 +504,7 @@ def is_between_dates(event, start_date, end_date):
         return False
 
     return True
+
 
 def getSfInfo():
     params_dict = {'grant_type': 'password',

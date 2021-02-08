@@ -19,6 +19,7 @@ from uuid import uuid4
 logger = logging.getLogger('mylogger')
 JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
+
 @csrf_exempt
 def generate_change_password_code(request):
     body = json.loads(request.body.decode())
@@ -37,6 +38,7 @@ def generate_change_password_code(request):
     user.code_expiration_date = datetime.now() + timedelta(minutes=30)
     user.save()
     return HttpResponse("Code generated", 200)
+
 
 @csrf_exempt
 def login(request):
@@ -57,7 +59,7 @@ def login(request):
 
         if not (user.first_name and user.last_name):
             user.first_name, user.last_name = response_content[
-                'First_Name__c'], response_content['Lastname__c']
+                'First_Name__c'], response_content['Last_Name__c']
             user.save()
 
         response.content = json.dumps(response_content)

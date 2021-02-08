@@ -40,7 +40,7 @@ def get_events(request):
     
     team_id = body.get('team_id')
 
-    sf_respone = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Team__c,Meeting_link__c	+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()
+    sf_respone = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Team__c,Meeting_link__c+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={"Authorization": "Bearer "+access_token}).json()
 
     events_list = [{key: event[key] for key in event if key != 'attributes'} for event in sf_respone.get('records') if is_between_dates(event, start_date, end_date)]
 

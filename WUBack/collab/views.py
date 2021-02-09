@@ -354,6 +354,7 @@ def add_member(request):
         return response
 
     response.status_code = 200
+    response.content = "Successfully added member to team"
     return response
 
 

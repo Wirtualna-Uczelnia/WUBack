@@ -6,9 +6,14 @@ from django import forms
 import logging
 import json
 import requests
+import random
 
 from jwt import decode, InvalidTokenError
 from datetime import datetime
+
+from pyzoom import ZoomClient
+
+client = ZoomClient.from_environment()
 
 
 logger = logging.getLogger("mylogger")
@@ -142,13 +147,6 @@ def create_event(request):
         response.status_code = 401
         return response
 
-    event_dict = {
-        "attributes": {
-            "type": "Event__c"
-        },
-        "Meeting_link__c": "www.kurnik.pl"
-    }
-
     body = json.loads(request.body.decode())
     event_info = body.get('event_info')
 
@@ -156,6 +154,22 @@ def create_event(request):
         response.content = "Event info not provided"
         response.status_code = 400
         return response
+
+    meeting_pass = str(random.randint(0, 999999)).zfill(6)
+    start_date = datetime.fromisoformat(event_info.get("Start_Date__c")[:-1])
+    end_date = datetime.fromisoformat(event_info.get("End_Date__c")[:-1])
+    duration = int((end_date-start_date).total_seconds()/60)
+    meeting = client.meetings.create_meeting(event_info.get('Subject__c'), start_time=event_info.get(
+        'Start_Date__c')[:-1], duration_min=duration, password=meeting_pass)
+    meeting_dict = dict(meeting)
+
+    event_dict = {
+        "attributes": {
+            "type": "Event__c"
+        },
+        "Meeting_Link__c": meeting_dict.get("start_url"),
+        "Meeting_Password__c": meeting_pass
+    }
 
     event_dict.update(event_info)
     event_dict = {"records": [event_dict]}
@@ -236,8 +250,9 @@ def get_paginated_team_list(request):
         response.status_code = 401
         return response
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{decode(token, JWT_SECRET).get('username')}')", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{decode(token, JWT_SECRET).get('username')}')+ORDER+BY+Id+DESC", headers={
                                "Authorization": "Bearer "+access_token}).json()
+
     team_list_size, team_list = sf_response.get(
         'totalSize'), sf_response.get('records')
 

@@ -250,7 +250,7 @@ def get_paginated_team_list(request):
         response.status_code = 401
         return response
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{decode(token, JWT_SECRET).get('username')}')+ORDER+BY+Id+DESC", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{decode(token, JWT_SECRET).get('username')}')+ORDER+BY+Subject__c+ASC", headers={
                                "Authorization": "Bearer "+access_token}).json()
 
     team_list_size, team_list = sf_response.get(

@@ -24,19 +24,37 @@ JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 def generate_change_password_code(request):
     body = json.loads(request.body.decode())
     login = body.get("login")
-    user = (WU_User.objects.filter(username=login))[0]
+    user = (WU_User.objects.filter(username=login))
     if not user:
         return HttpResponse("Username doesn't exist\n", status=401)
 
     code = str(uuid4())
     access_token, instance_url = getSfInfo()
 
-    ### tu potrzebujemy endpointa od krzyśka ###
-    # requests.post(jakiś url, params={"code": code})
+    user_id = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Login__c+FROM+Didactic_Group_Member__c+WHERE+Login__c='{login}'", headers={
+        "Authorization": "Bearer "+access_token}).json()['records'][0].get('Id')
 
+    user_dict = {
+        "allOrNone": False,
+        "records": [
+            {
+                "attributes": {
+                    "type": "Didactic_Group_Member__c"
+                },
+                "id": user_id,
+                "Authentication_Code__c": code
+            }
+        ]
+    }
+
+    resp = requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                          json=user_dict, headers={"Authorization": "Bearer "+access_token})
+
+    user = user[0]
     user.code = code
     user.code_expiration_date = datetime.now() + timedelta(minutes=30)
     user.save()
+
     return HttpResponse("Code generated", 200)
 
 

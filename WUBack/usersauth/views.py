@@ -70,7 +70,7 @@ def login(request):
         access_token, instance_url = getSfInfo()
         sf_user_info = requests.get(
             instance_url+f"/services/data/v50.0/sobjects/Didactic_Group_Member__c/Login__c/{username}", headers={"Authorization": "Bearer "+access_token}).json()
-        returned_fields = ['First_Name__c', "Lastname__c", "Type_of_Member__c"]
+        returned_fields = ['First_Name__c', "Last_Name__c", "Type_of_Member__c"]
 
         response_content = {key: sf_user_info[key]
                             for key in sf_user_info if key in returned_fields}

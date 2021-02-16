@@ -44,13 +44,27 @@ def get_events(request):
         response.status_code = 400
         return response
 
-    team_id = body.get('team_id')
+    event_owner = body.get("event_owner")
+    sf_response = None
 
-    sf_respone = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={
-                              "Authorization": "Bearer "+access_token}).json()
+    if event_owner == "team":
+        team_id = body.get("team_id")
+        sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={
+            "Authorization": "Bearer "+access_token}).json()
+
+    elif event_owner == "user":
+        username = body.get("username")
+        sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{username}')", headers={
+            "Authorization": "Bearer "+access_token}).json()
+
+        teams_ids = "'"+"','".join([s.get('Id')
+                                    for s in sf_response.get('records')])+"'"
+
+        sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c+IN+({teams_ids})", headers={
+            "Authorization": "Bearer "+access_token}).json()
 
     events_list = [{key: event[key] for key in event if key != 'attributes'}
-                   for event in sf_respone.get('records') if is_between_dates(event, start_date, end_date)]
+                   for event in sf_response.get('records') if is_between_dates(event, start_date, end_date)]
 
     response.status_code = 200
     response.content = json.dumps({"records": events_list})
@@ -75,6 +89,9 @@ def remove_event(request):
 
     body = json.loads(request.body.decode())
     event_id = body.get('event_id')
+    meeting_id = body.get('meeting_id')
+
+    client.meetings.delete_meeting(meeting_id)
 
     requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={event_id}", headers={
                     "Authorization": "Bearer "+access_token})
@@ -161,6 +178,7 @@ def create_event(request):
     duration = int((end_date-start_date).total_seconds()/60)
     meeting = client.meetings.create_meeting(event_info.get('Subject__c'), start_time=event_info.get(
         'Start_Date__c')[:-1], duration_min=duration, password=meeting_pass)
+
     meeting_dict = dict(meeting)
 
     event_dict = {
@@ -168,7 +186,8 @@ def create_event(request):
             "type": "Event__c"
         },
         "Meeting_Link__c": meeting_dict.get("start_url"),
-        "Meeting_Password__c": meeting_pass
+        "Meeting_Password__c": meeting_pass,
+        "Meeting_Id__c": meeting_dict.get("id")
     }
 
     event_dict.update(event_info)

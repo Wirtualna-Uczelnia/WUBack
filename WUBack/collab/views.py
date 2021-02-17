@@ -89,9 +89,9 @@ def remove_event(request):
 
     body = json.loads(request.body.decode())
     event_id = body.get('event_id')
-    meeting_id = body.get('meeting_id')
+#     meeting_id = body.get('meeting_id')
 
-    client.meetings.delete_meeting(meeting_id)
+#     client.meetings.delete_meeting(meeting_id)
 
     requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={event_id}", headers={
                     "Authorization": "Bearer "+access_token})

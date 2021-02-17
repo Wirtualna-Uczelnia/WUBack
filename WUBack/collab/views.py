@@ -46,9 +46,9 @@ def get_events(request):
 
     event_owner = body.get("event_owner")
     sf_response = None
+    team_id = body.get("team_id")
 
     if event_owner == "team":
-        team_id = body.get("team_id")
         sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={
             "Authorization": "Bearer "+access_token}).json()
 
@@ -58,7 +58,7 @@ def get_events(request):
             "Authorization": "Bearer "+access_token}).json()
 
         teams_ids = "'"+"','".join([s.get('Id')
-                                    for s in sf_response.get('records')])+"'"
+                                    for s in sf_response.get('records') if s.get("Id") != team_id])+"'"
 
         sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c+IN+({teams_ids})", headers={
             "Authorization": "Bearer "+access_token}).json()
@@ -89,15 +89,27 @@ def remove_event(request):
 
     body = json.loads(request.body.decode())
     event_id = body.get('event_id')
-#     meeting_id = body.get('meeting_id')
 
-#     client.meetings.delete_meeting(meeting_id)
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Meeting_Id__c+FROM+Event__c+WHERE+Id='{event_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
 
-    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={event_id}", headers={
-                    "Authorization": "Bearer "+access_token})
+    if sf_response.get('records'):
+        meeting_id = sf_response.get('records')[0].get('Meeting_Id__c')
 
-    response.status_code = 200
-    response.content = "Event successfully removed"
+        try:
+            client.meetings.delete_meeting(meeting_id)
+        except:
+            response.content = "Event zoom meeting id error; "
+
+        requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={event_id}", headers={
+                        "Authorization": "Bearer "+access_token})
+
+        response.status_code = 200
+        response.content += b"Event successfully removed"
+        return response
+
+    response.status_code = 404
+    response.content = "Event not found"
     return response
 
 
@@ -117,12 +129,6 @@ def edit_event(request):
         response.status_code = 401
         return response
 
-    event_dict = {
-        "attributes": {
-            "type": "Event__c"
-        }
-    }
-
     body = json.loads(request.body.decode())
     event_info = body.get('event_info')
 
@@ -131,7 +137,24 @@ def edit_event(request):
         response.status_code = 400
         return response
 
+    event_id = event_info.get("id")
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Meeting_Password__c,Team__c+FROM+Event__c+WHERE+Id='{event_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    event_dict = sf_response.get('records')[0]
     event_dict.update(event_info)
+
+    start_date = datetime.fromisoformat(event_dict.get("Start_Date__c")[:-5])
+    end_date = datetime.fromisoformat(event_dict.get("End_Date__c")[:-5])
+    duration = int((end_date-start_date).total_seconds()/60)
+
+    meeting = client.meetings.create_meeting(event_dict.get('Subject__c'), start_time=event_dict.get(
+        'Start_Date__c')[:-1], duration_min=duration, password=event_dict.get('Meeting_Password__c'))
+
+    meeting_dict = dict(meeting)
+    event_dict['Meeting_Link__c'] = meeting_dict.get("start_url")
+    event_dict['Meeting_Id__c'] = meeting_dict.get("id")
 
     event_dict = {
         "allOrNone": False,
@@ -139,6 +162,16 @@ def edit_event(request):
             event_dict
         ]
     }
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Meeting_Id__c+FROM+Event__c+WHERE+Id='{event_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    if sf_response.get('records'):
+        meeting_id = sf_response.get('records')[0].get('Meeting_Id__c')
+        try:
+            client.meetings.delete_meeting(meeting_id)
+        except:
+            response.content = "Event zoom meeting id error; "
 
     requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
                    json=event_dict, headers={"Authorization": "Bearer "+access_token})

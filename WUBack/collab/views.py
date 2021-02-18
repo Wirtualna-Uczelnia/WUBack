@@ -259,7 +259,12 @@ def get_team_info(request):
         return response
 
     team_info = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id='{team_id}'", headers={
-                             "Authorization": "Bearer "+access_token}).json()['records'][0]
+                             "Authorization": "Bearer "+access_token}).json().get('records')
+    if not team_info:
+        response.status_code = 404
+        return response
+    
+    team_info = team_info[0]
     team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}'", headers={
                                 "Authorization": "Bearer "+access_token}).json()
 

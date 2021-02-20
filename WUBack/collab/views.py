@@ -142,7 +142,14 @@ def edit_event(request):
     sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Meeting_Password__c,Team__c+FROM+Event__c+WHERE+Id='{event_id}'", headers={
         "Authorization": "Bearer "+access_token}).json()
 
-    event_dict = sf_response.get('records')[0]
+    records = sf_response.get('records')
+
+    if not records:
+        response.content = "No such event id"
+        response.status_code = 404
+        return response
+
+    event_dict = records[0]
     event_dict.update(event_info)
 
     start_date = datetime.fromisoformat(event_dict.get("Start_Date__c")[:-5])
@@ -229,6 +236,11 @@ def create_event(request):
     sf_response = requests.post(instance_url + f"/services/data/v48.0/composite/sobjects/",
                                 json=event_dict, headers={"Authorization": "Bearer "+access_token}).json()
 
+    if not sf_response[0].get('id'):
+        response.status_code = 400
+        response.content = "Wrong data, event not created"
+        return response
+
     response.status_code = 200
     response.content = json.dumps({'id': sf_response[0].get('id')})
     return response
@@ -258,26 +270,37 @@ def get_team_info(request):
         response.status_code = 401
         return response
 
-    team_info = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id='{team_id}'", headers={
-                             "Authorization": "Bearer "+access_token}).json().get('records')
-    if not team_info:
-        response.status_code = 404
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c+FROM+Team__c+WHERE+Id='{team_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    records = sf_response.get('records')
+    if not records:
+        response.content = "No team with such id"
+        response.status_code = 400
         return response
-    
-    team_info = team_info[0]
+
+    team_info = records[0]
+
     team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}'", headers={
                                 "Authorization": "Bearer "+access_token}).json()
 
-    team_members_dict = [{"id": team_member.get('Id'), 'login': team_member.get(
+    team_members_list = [{"id": team_member.get('Id'), 'login': team_member.get(
         'Didactic_Group_Member_Login__c')} for team_member in team_members.get('records')]
-    team_members_info = [{"first_name": user.first_name, "last_name": user.last_name} for user in [
-        (WU_User.objects.filter(username=team_member['login']))[0] for team_member in team_members_dict]]
 
-    for d, i in zip(team_members_dict, team_members_info):
+    users = [user_exists[0] for team_member in team_members_list if (
+        user_exists := list(WU_User.objects.filter(username=team_member['login']))) != []]
+
+    team_members_list = [
+        team_member for team_member in team_members_list if team_member['login'] in [user.username for user in users]]
+
+    team_members_info = [{"first_name": user.first_name,
+                          "last_name": user.last_name} for user in users]
+
+    for d, i in zip(team_members_list, team_members_info):
         d.update(i)
 
     response.content = json.dumps({"id": team_info.get('Id'), "subject": team_info.get(
-        'Subject__c'), "description": team_info.get('Description__c'), "team_members": team_members_dict})
+        'Subject__c'), "description": team_info.get('Description__c'), "team_members": team_members_list})
     response.status_code = 200
     return response
 

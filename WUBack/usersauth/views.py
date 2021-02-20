@@ -31,8 +31,15 @@ def generate_change_password_code(request):
     code = str(uuid4())
     access_token, instance_url = getSfInfo()
 
-    user_id = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Login__c+FROM+Didactic_Group_Member__c+WHERE+Login__c='{login}'", headers={
-        "Authorization": "Bearer "+access_token}).json()['records'][0].get('Id')
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Login__c+FROM+Didactic_Group_Member__c+WHERE+Login__c='{login}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    records = sf_response.get('records')
+
+    if not records:
+        return HttpResponse("No user in salesforce\n", status=404)
+
+    user_id = records[0].get('Id')
 
     user_dict = {
         "allOrNone": False,
@@ -47,8 +54,8 @@ def generate_change_password_code(request):
         ]
     }
 
-    resp = requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
-                          json=user_dict, headers={"Authorization": "Bearer "+access_token})
+    requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                   json=user_dict, headers={"Authorization": "Bearer "+access_token})
 
     user = user[0]
     user.code = code
@@ -70,7 +77,8 @@ def login(request):
         access_token, instance_url = getSfInfo()
         sf_user_info = requests.get(
             instance_url+f"/services/data/v50.0/sobjects/Didactic_Group_Member__c/Login__c/{username}", headers={"Authorization": "Bearer "+access_token}).json()
-        returned_fields = ['First_Name__c', "Last_Name__c", "Type_of_Member__c"]
+        returned_fields = ['First_Name__c',
+                           "Last_Name__c", "Type_of_Member__c"]
 
         response_content = {key: sf_user_info[key]
                             for key in sf_user_info if key in returned_fields}
@@ -109,16 +117,18 @@ def create_user(request):
     created = 0
 
     for user in batch:
-        username = user['username']
-        code = user['code']
+        username = user.get('username')
+        code = user.get('code')
+        isStudent = user.get('type') == "Student"
 
         init_pass = sha512((username + code).encode()).hexdigest()
         expiration_date = datetime.now().date() + timedelta(days=5)
 
         try:
             u = WU_User.objects.create_user(
-                username=username, password=init_pass, code=code
+                username=username, password=init_pass, code=code, is_student=isStudent
             )
+
         except IntegrityError:
             logger.error(f'user \'{username}\' already exists')
         else:
@@ -138,9 +148,12 @@ def change_pass(request):
     if not code or not new_password:
         return HttpResponse('Cannot have neither empty code nor empty password\n', status=400)
 
-    user = (WU_User.objects.filter(code=code))[0]
+    user = WU_User.objects.filter(code=code)
+
     if not user:
         return HttpResponse('No user with such code\n', status=401)
+
+    user = list(user)[0]
 
     if is_expired(user.code_expiration_date):
         return HttpResponse('Cannot change password\n', status=400)
@@ -155,10 +168,12 @@ def change_pass(request):
 @csrf_exempt
 def validate(request, code):
     user = WU_User.objects.filter(code=code)
+
     if not user:
         return HttpResponse('No user with such code\n', status=401)
 
     user = list(user)[0]
+
     expiration = user.code_expiration_date
 
     if not is_expired(expiration):
@@ -175,7 +190,7 @@ def del_user(request):
         user = (WU_User.objects.filter(username=username))[0]
         user.delete()
     except Exception as _:
-        return HttpResponse('User does not exist!\n', status=500)
+        return HttpResponse('User does not exist!\n', status=404)
 
     return HttpResponse('User deleted\n', status=200)
 

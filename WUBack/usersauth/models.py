@@ -3,11 +3,11 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 
 class WU_UserManager(BaseUserManager):
-    def create_user(self, username, code=None, password=None):
+    def create_user(self, username, code=None, password=None, is_student=True):
         if not username:
             raise ValueError("Users need username!!!!")
 
-        user = self.model(username=username, code=code)
+        user = self.model(username=username, code=code, is_student=is_student)
 
         user.set_password(password)
         user.save(using=self._db)

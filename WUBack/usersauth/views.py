@@ -1,23 +1,18 @@
-from django.http import HttpResponse, response
-from .models import WU_User
-from django.contrib.auth import authenticate
-from django.views.decorators.csrf import csrf_exempt
-from django.db import IntegrityError
-from django.core.exceptions import ObjectDoesNotExist
-
-from django import forms
-import logging
 import json
 import requests
-from jwt import encode
-from datetime import datetime, timedelta
+
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate
+from django.http import HttpResponse
+from django.db import IntegrityError
 from django.utils import timezone
+
+from utils.tools import getSfInfo, is_expired, JWT_SECRET, logger
+from datetime import datetime, timedelta
+from .models import WU_User
 from hashlib import sha512
+from jwt import encode
 from uuid import uuid4
-
-
-logger = logging.getLogger('mylogger')
-JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
 
 
 @csrf_exempt
@@ -193,21 +188,3 @@ def del_user(request):
         return HttpResponse('User does not exist!\n', status=404)
 
     return HttpResponse('User deleted\n', status=200)
-
-
-def is_expired(date):
-    today = timezone.now()
-    return today > date
-
-
-def getSfInfo():
-    params_dict = {'grant_type': 'password',
-                   'client_id': '3MVG9SOw8KERNN09H9Ywj70jHzsxSfITp8bSXOp69yPjy4ZSWvhPi9pChcztDAo5UT8gSe9nHdHQcPlvLADp6',
-                   'client_secret': '386DEF04C4F6D5DE1217D6AD231C585AF802EA4ED331CB91BA8C5C5A8530806E',
-                   'username': 'integrationuser@kk-demo.com',
-                   'password': 'Integracja1iK03DXGbZpON8LbIpSqA474W'}
-
-    resp = requests.post(
-        'https://login.salesforce.com/services/oauth2/token', params=params_dict)
-
-    return resp.json()['access_token'], resp.json()['instance_url']

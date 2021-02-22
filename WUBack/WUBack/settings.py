@@ -82,6 +82,7 @@ LOGGING = {
 INSTALLED_APPS = [
     "usersauth",
     "collab",
+    "utils",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

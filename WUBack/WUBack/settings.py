@@ -139,7 +139,7 @@ DATABASES = {
 
         'USER': 'hiexvttzvtwcdu',
 
-        'PASSWORD': 'ae1d9fca957d44774b37b441f308f840d8f95c92b857650853a03fd4cc62c816',
+        'PASSWORD': os.getenv('POSTGRESQL_PASSWORD'),
 
         'HOST': 'ec2-18-206-84-251.compute-1.amazonaws.com',
 

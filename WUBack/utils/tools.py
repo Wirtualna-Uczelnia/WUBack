@@ -7,6 +7,7 @@ import logging
 import json
 import requests
 import random
+import os
 
 from jwt import decode, InvalidTokenError
 from datetime import datetime, timezone
@@ -15,7 +16,7 @@ from pyzoom import ZoomClient
 client = ZoomClient.from_environment()
 
 logger = logging.getLogger("mylogger")
-JWT_SECRET = "asfiwenbuijfngskejngskdjnksjdn"
+JWT_SECRET = os.getenv('JWT_SECRET')
 
 
 def check_access(token, role):
@@ -63,10 +64,10 @@ def is_expired(date):
 
 def getSfInfo():
     params_dict = {'grant_type': 'password',
-                   'client_id': '3MVG9SOw8KERNN09H9Ywj70jHzsxSfITp8bSXOp69yPjy4ZSWvhPi9pChcztDAo5UT8gSe9nHdHQcPlvLADp6',
-                   'client_secret': '386DEF04C4F6D5DE1217D6AD231C585AF802EA4ED331CB91BA8C5C5A8530806E',
-                   'username': 'integrationuser@kk-demo.com',
-                   'password': 'Integracja1iK03DXGbZpON8LbIpSqA474W'}
+                   'client_id': os.getenv('SF_CLIENT_ID'),
+                   'client_secret': os.getenv('SF_CLIENT_SECRET'),
+                   'username': os.getenv('SF_USERNAME'),
+                   'password': os.getenv('SF_PASSWORD')}
 
     resp = requests.post(
         'https://login.salesforce.com/services/oauth2/token', params=params_dict)

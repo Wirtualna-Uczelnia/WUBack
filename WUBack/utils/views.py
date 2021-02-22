@@ -23,6 +23,12 @@ def create_classes(request):
     start_date = datetime.fromisoformat(body.get('start_date'))
     end_date = datetime.fromisoformat(body.get('end_date'))
     subject = body.get('subject')
+
+    if not (classes_id and start_date and end_date and subject):
+        response.content = "Wrong data"
+        response.status_code = 400
+        return response
+
     duration = int((end_date-start_date).total_seconds()/60)
     meeting_pass = str(random.randint(0, 999999)).zfill(6)
 
@@ -73,15 +79,20 @@ def get_schedule(request):
 
     didactic_group_id = body.get("didactic_group_id")
 
+    if not didactic_group_id:
+        response.content = "Didactic group id not provided"
+        response.status_code = 400
+        return response
+
     sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,\
         Repeat_Frequency__c,Is_Repetitive__c,Didactic_Group__c,Meeting_Link__c+FROM+Event__c+WHERE+Didactic_Group__c='{didactic_group_id}'", headers={
         "Authorization": "Bearer "+access_token}).json()
 
     events_list = [{key: event[key] for key in event if key != 'attributes'}
                    for event in sf_response.get('records')]
-
     response.status_code = 200
     response.content = json.dumps({"records": events_list})
+
     return response
 
 

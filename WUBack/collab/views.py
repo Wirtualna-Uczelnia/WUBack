@@ -57,7 +57,7 @@ def get_events(request):
             "Authorization": "Bearer "+access_token}).json()
 
         members = [{'login': member.get('Didactic_Group_Member_Login__c'), 'team': member.get(
-            'Team__c')} for member in team_members['records']]
+            'Team__c')} for member in team_members['records'] if member.get('Team__c') != team_id]
 
         teams_ids = "'"+"','".join(list(set([m.get('Team__c')
                                              for m in team_members.get('records')]))) + "'"

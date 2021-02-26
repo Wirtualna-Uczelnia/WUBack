@@ -42,19 +42,39 @@ def get_events(request):
         sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c='{team_id}'", headers={
             "Authorization": "Bearer "+access_token}).json()
 
+        events_list = [{key: event[key] for key in event if key != 'attributes'}
+                       for event in sf_response.get('records') if is_between_dates(event, start_date, end_date)]
+
     elif event_owner == "user":
-        username = body.get("username")
-        sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id+FROM+Team__c+WHERE+Id+IN+(SELECT+Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c='{username}')", headers={
+        team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c,Team__c+FROM+Team_Member__c+WHERE+Team__c='{team_id}'", headers={
             "Authorization": "Bearer "+access_token}).json()
 
-        teams_ids = "'"+"','".join([s.get('Id')
-                                    for s in sf_response.get('records') if s.get("Id") != team_id])+"'"
+        members_logins = "'" + \
+            "','".join([m.get('Didactic_Group_Member_Login__c')
+                        for m in team_members['records']]) + "'"
+
+        team_members = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c,Team__c+FROM+Team_Member__c+WHERE+Didactic_Group_Member_Login__c+IN+({members_logins})", headers={
+            "Authorization": "Bearer "+access_token}).json()
+
+        members = [{'login': member.get('Didactic_Group_Member_Login__c'), 'team': member.get(
+            'Team__c')} for member in team_members['records']]
+
+        teams_ids = "'"+"','".join(list(set([m.get('Team__c')
+                                             for m in team_members.get('records')]))) + "'"
 
         sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Team__c,Meeting_Link__c+FROM+Event__c+WHERE+Team__c+IN+({teams_ids})", headers={
             "Authorization": "Bearer "+access_token}).json()
 
-    events_list = [{key: event[key] for key in event if key != 'attributes'}
-                   for event in sf_response.get('records') if is_between_dates(event, start_date, end_date)]
+        members_events_list = [{key: event[key] for key in event if key != 'attributes'}
+                               for event in sf_response.get('records') if is_between_dates(event, start_date, end_date)]
+
+        events_list = {}
+        for login in set([member.get('login') for member in members]):
+            teams_ids = [member.get('team')
+                         for member in members if member.get('login') == login]
+            events = [event for event in members_events_list if event.get(
+                'Team__c') in teams_ids]
+            events_list[login] = events
 
     response.status_code = 200
     response.content = json.dumps({"records": events_list})

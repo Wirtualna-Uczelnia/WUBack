@@ -75,24 +75,25 @@ def get_schedule(request):
         response.status_code = 401
         return response
 
-    body = json.loads(request.body.decode())
+    username = decode(token, JWT_SECRET).get("username")
 
-    didactic_group_id = body.get("didactic_group_id")
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Meeting__c+FROM+Didactic_Group__c+WHERE+Id+IN+ \
+        (SELECT+Didactic_Group__c+FROM+Didactic_Group_Attendee__c+WHERE+Didactic_Group_Member_Login__c='{username}')", headers={
+        "Authorization": "Bearer "+access_token}).json()
 
-    if not didactic_group_id:
-        response.content = "Didactic group id not provided"
-        response.status_code = 400
-        return response
+    events_ids = "'" + \
+        "','".join([m.get('Meeting__c')
+                    for m in sf_response['records']]) + "'"
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c,End_Date__c,\
-        Repeat_Frequency__c,Is_Repetitive__c,Didactic_Group__c,Meeting_Link__c+FROM+Event__c+WHERE+Didactic_Group__c='{didactic_group_id}'", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Description__c,Start_Date__c, \
+        End_Date__c,Repeat_Frequency__c,Is_Repetitive__c,Meeting_Link__c+FROM+Event__c+WHERE+Id+IN+({events_ids})", headers={
         "Authorization": "Bearer "+access_token}).json()
 
     events_list = [{key: event[key] for key in event if key != 'attributes'}
                    for event in sf_response.get('records')]
+
     response.status_code = 200
     response.content = json.dumps({"records": events_list})
-
     return response
 
 

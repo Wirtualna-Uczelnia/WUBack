@@ -11,6 +11,46 @@ from datetime import datetime
 
 
 @csrf_exempt
+def add_attachment(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    if any(key not in body for key in ["Name", "Body", "parentId"]):
+        response.content = "Name, Body, or parentId not provided"
+        response.status_code = 400
+        return response
+
+    attachment_data = {
+        "records": [{
+            "attributes": {
+                "type": "Attachment"
+            },
+            **body
+        }]
+    }
+
+    sf_response = requests.post(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                                json=attachment_data, headers={"Authorization": "Bearer "+access_token}).json()
+
+    response.status_code = 200
+    response.content = "Attachment added successfully"
+    return response
+
+
+@csrf_exempt
 def get_events(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")
@@ -529,6 +569,7 @@ def add_team(request):
 
         team_member_list = requests.post(
             instance_url+"/services/data/v48.0/composite/sobjects/", json=create_team_member_data, headers={"Authorization": "Bearer "+access_token}).json()
+
         if not team_member_list[0].get('id'):
             response.status_code = 404
             response.content = "Error with adding team member"

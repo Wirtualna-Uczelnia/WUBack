@@ -7,6 +7,37 @@ from usersauth.models import WU_User
 from .tools import *
 
 
+@ csrf_exempt
+def search_courses(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    pattern = body.get('pattern')
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Faculty__c,Subject__c+FROM+Course__c", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    courses_list = [{key: course[key] for key in course if key != 'attributes'}
+                    for course in sf_response.get('records') if pattern.lower() in course.get('Subject__c').lower()]
+
+    response.content = json.dumps({"records": courses_list})
+    response.status_code = 200
+    return response
+
+
 @csrf_exempt
 def create_classes(request):
     response = HttpResponse()
@@ -61,7 +92,7 @@ def create_classes(request):
 
 @csrf_exempt
 def get_schedule(request):
-    response = HttpResponse()
+    response = HttpResponse(content_type='application/json')
     token = request.COOKIES.get("access_token")
 
     if not token:

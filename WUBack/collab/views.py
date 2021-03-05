@@ -62,9 +62,9 @@ def get_attachment(request):
     attachment_id = body.get("attachment_id")
 
     attachment_content = requests.get(instance_url + f'/services/data/v50.0/sobjects/Attachment/{attachment_id}/Body', headers={
-        "Authorization": "Bearer "+access_token}).content.decode()
+        "Authorization": "Bearer "+access_token}).content
 
-    response.content = json.dumps({"attachment_content": attachment_content})
+    response.content = attachment_content #json.dumps({"attachment_content": attachment_content})
     response.status_code = 200
     return response
 

@@ -8,6 +8,111 @@ from .tools import *
 
 
 @ csrf_exempt
+def get_my_course_info(request):
+    response = HttpResponse(content_type="application/json")
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    token = decode(token, JWT_SECRET)
+    type_of_member = token["member_type"]
+
+    body = json.loads(request.body.decode())
+
+    didactic_group_id = body.get('didactic_group_id')
+
+    if type_of_member == "Teacher":
+        course_attendee_list = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Didactic_Group_Attendee__c+WHERE+Didactic_Group__c='{didactic_group_id}'", headers={
+            "Authorization": "Bearer "+access_token}).json()
+
+        course_info = {attendee.get('Id'): {"login": attendee.get(
+            'Didactic_Group_Member_Login__c'), "grades": []} for attendee in course_attendee_list.get('records')}
+
+        attendee_ids = "'" + "','".join(course_info.keys()) + "'"
+
+        grades = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Grade_Value__c,Name,Didactic_Group_Attendee__c+FROM+Grade__c+WHERE+Didactic_Group_Attendee__c+IN+({attendee_ids})", headers={
+            "Authorization": "Bearer "+access_token}).json()
+
+        for grade in grades.get('records'):
+            course_info[grade.get('Didactic_Group_Attendee__c')]['grades'].append({"id": grade.get(
+                'Id'), "name": grade.get('Name'), "value": grade.get('Grade_Value__c')})
+
+        response.content = json.dumps(course_info)
+        response.status_code = 200
+        return response
+    elif type_of_member == "Student":
+        sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Didactic_Group_Attendee__c+WHERE+Didactic_Group__c='{didactic_group_id}'+AND+Didactic_Group_Member_Login__c='{token.get('username')}'", headers={
+            "Authorization": "Bearer "+access_token}).json()
+
+        records = sf_response.get('records')
+
+        if not records:
+            response.content = "User is not an attendee of this course"
+            response.status_code = 404
+            return response
+
+        attendee_id = records[0].get('Id')
+
+        grades = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Grade_Value__c,Name+FROM+Grade__c+WHERE+Didactic_Group_Attendee__c='{attendee_id}'", headers={
+            "Authorization": "Bearer "+access_token}).json()
+
+        course_info = {attendee_id: {"login": token.get('username'), "grades": [{"id": grade.get(
+            'Id'), "name": grade.get('Name'), "value": grade.get('Grade_Value__c')} for grade in grades.get('records')]}}
+
+        response.content = json.dumps(course_info)
+        response.status_code = 200
+        return response
+
+    response.status_code = 418
+    return response
+
+
+@ csrf_exempt
+def get_general_course_info(request):
+    response = HttpResponse(content_type="application/json")
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    course_id = body.get("course_id")
+
+    if not course_id:
+        response.content = "Course id not provided"
+        response.status_code = 400
+        return response
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Assessment_methods__c,ECTS__c,Faculty__c,Literature__c,Statute__c,Subject__c+FROM+Course__c+WHERE+Id='{course_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    courses_info = [{key: course[key] for key in course if key != 'attributes'}
+                    for course in sf_response.get('records')]
+
+    response.content = json.dumps(courses_info[0])
+    response.status_code = 200
+    return response
+
+
+@ csrf_exempt
 def search_courses(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")

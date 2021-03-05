@@ -7,6 +7,134 @@ from usersauth.models import WU_User
 from .tools import *
 
 
+@csrf_exempt
+def create_change_group_request(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    from_didactic_group_id = body.get('from_dg_id')
+    to_didactic_group_id = body.get('to_dg_id')
+
+    if not from_didactic_group_id or not to_didactic_group_id:
+        response.content = "Didactic group ids not provided"
+        response.status_code = 400
+        return response
+
+    token = decode(token, JWT_SECRET)
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id+FROM+Didactic_Group_Member__c+WHERE+Login__c='{token.get('username')}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    didactic_group_member = sf_response.get('records')[0].get('Id')
+
+    change_group_request_dict = {
+        "records": [{
+            "attributes": {
+                "type": "Group_Change_Request__c"
+            },
+            "From_Group__c": from_didactic_group_id,
+            "To_Group__c": to_didactic_group_id,
+            "Who__c": didactic_group_member,
+        }
+        ]
+    }
+
+    sf_response = requests.post(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                                json=change_group_request_dict, headers={"Authorization": "Bearer "+access_token}).json()
+
+    if not sf_response[0].get('id'):
+        response.status_code = 400
+        response.content = "Wrong data, change group request not created"
+        return response
+
+    response.status_code = 200
+    response.content = json.dumps({'id': sf_response[0].get('id')})
+    return response
+
+
+@csrf_exempt
+def get_change_group_request_info(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    from_didactic_group_id = body.get('didactic_group_id')
+
+    if not from_didactic_group_id:
+        response.content = "Didactic group id not provided"
+        response.status_code = 400
+        return response
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Course__c,Type_of_classes__c+FROM+Didactic_Group__c+WHERE+Id='{from_didactic_group_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    course_id, type_of_classes = sf_response.get('records')[0].get(
+        'Course__c'), sf_response.get('records')[0].get('Type_of_classes__c')
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id+FROM+Didactic_Group__c+WHERE+Course__c='{course_id}'+AND+Type_of_classes__c='{type_of_classes}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    response.content = f"{sf_response}"
+    response.status_code = 200
+    return response
+
+
+@csrf_exempt
+def remove_change_group_request(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    change_group_request_ids = body.get('change_group_request_ids')
+
+    change_group_request_ids = ",".join(
+        change_group_request_ids).replace("'", "")
+
+    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={change_group_request_ids}&allOrNone=false", headers={
+        "Authorization": "Bearer "+access_token})
+
+    response.content = "Change group request(s) successfully removed"
+    response.status_code = 200
+    return response
+
+
 @ csrf_exempt
 def get_my_course_info(request):
     response = HttpResponse(content_type="application/json")

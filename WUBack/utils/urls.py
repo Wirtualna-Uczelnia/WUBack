@@ -8,4 +8,7 @@ urlpatterns = [
     path('getMyCourseInfo/', views.get_my_course_info),
     path('createClasses/', views.create_classes),
     path('getSchedule/', views.get_schedule),
+    path('removeChangeGroupRequest/', views.remove_change_group_request),
+    path('createChangeGroupRequest/', views.create_change_group_request),
+    path('getChangeGroupRequestInfo/', views.get_change_group_request_info),
 ]

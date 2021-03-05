@@ -13,4 +13,7 @@ urlpatterns = [
     path("removeEvent/", views.remove_event),
     path("getEvents/", views.get_events),
     path("addAttachment/", views.add_attachment),
+    path("getAttachments/", views.get_attachments),
+    path("getAttachment/", views.get_attachment),
+    path("removeAttachments/", views.remove_attachments),
 ]

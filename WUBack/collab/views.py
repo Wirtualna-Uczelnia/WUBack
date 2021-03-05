@@ -11,6 +11,100 @@ from datetime import datetime
 
 
 @csrf_exempt
+def get_attachments(request):
+    response = HttpResponse(content_type="application/json")
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    parent_id = body.get('parent_id')
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Name+FROM+Attachment+WHERE+parentId='{parent_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    attachments_list = [{key: attachment[key] for key in attachment if key != 'attributes'}
+                        for attachment in sf_response.get('records')]
+
+    response.content = json.dumps({"records": attachments_list})
+    response.status_code = 200
+    return response
+
+
+@csrf_exempt
+def get_attachment(request):
+    response = HttpResponse(content_type="application/json")
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    attachment_id = body.get("attachment_id")
+
+    attachment_content = requests.get(instance_url + f'/services/data/v50.0/sobjects/Attachment/{attachment_id}/Body', headers={
+        "Authorization": "Bearer "+access_token}).content.decode()
+
+    response.content = json.dumps({"attachment_content": attachment_content})
+    response.status_code = 200
+    return response
+
+
+@csrf_exempt
+def remove_attachments(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    attachments_ids_list = body.get('attachment_ids')
+
+    if not attachments_ids_list:
+        response.content = "No attachment id provided"
+        response.status_code = 400
+        return response
+
+    attachments_ids = ",".join(attachments_ids_list).replace("'", "")
+
+    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={attachments_ids}&allOrNone=false", headers={
+        "Authorization": "Bearer "+access_token})
+
+    response.content = "Attachments successfully removed"
+    response.status_code = 200
+    return response
+
+
+@csrf_exempt
 def add_attachment(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")

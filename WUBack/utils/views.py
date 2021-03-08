@@ -8,6 +8,124 @@ from .tools import *
 
 
 @csrf_exempt
+def add_grade(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "teacher")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    grade_info = body.get('grade_info')
+
+    if not grade_info:
+        response.content = "Grade info not provided"
+        response.status_code = 400
+        return response
+
+    create_grade_data = {
+        "records": [
+            {
+                "attributes": {
+                    "type": "Grade__c"
+                },
+                **grade_info
+            }
+        ]
+    }
+
+    sf_response = requests.post(instance_url+"/services/data/v48.0/composite/sobjects/",
+                                json=create_grade_data, headers={"Authorization": "Bearer "+access_token}).json()
+
+    response.status_code = 200
+    response.content = json.dumps({'id': sf_response[0].get('id')})
+    return response
+
+
+@csrf_exempt
+def edit_grade(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "teacher")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    grade_info = body.get('grade_info')
+
+    if not grade_info or not grade_info.get("Id"):
+        response.content = "Id not provided"
+        response.status_code = 400
+        return response
+
+    grade_dict = {
+        "allOrNone": False,
+        "records": [{
+            "attributes": {
+                "type": "Grade__c"
+            },
+            **grade_info
+        }
+        ]
+    }
+
+    r = requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                       json=grade_dict, headers={"Authorization": "Bearer "+access_token})
+
+    response.content = "Grade successfully edited"
+    response.status_code = 200
+    return response
+
+
+@csrf_exempt
+def remove_grade(request):
+    response = HttpResponse()
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "teacher")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    grades_ids = body.get('grades_ids')
+
+    grades_ids = ",".join(grades_ids).replace("'", "")
+
+    requests.delete(instance_url + f"/services/data/v49.0/composite/sobjects?ids={grades_ids}&allOrNone=false", headers={
+        "Authorization": "Bearer "+access_token})
+
+    response.content = "Great! Grade(s) successfully removed"
+    response.status_code = 200
+    return response
+
+
+@csrf_exempt
 def create_change_group_request(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")

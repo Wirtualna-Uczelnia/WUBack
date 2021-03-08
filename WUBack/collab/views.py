@@ -328,8 +328,8 @@ def edit_event(request):
     requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
                    json=event_dict, headers={"Authorization": "Bearer "+access_token})
 
-    response.status_code = 200
     response.content = "Event successfully edited"
+    response.status_code = 200
     return response
 
 

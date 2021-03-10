@@ -141,7 +141,7 @@ def add_attachment(request):
                                 json=attachment_data, headers={"Authorization": "Bearer "+access_token}).json()
 
     response.status_code = 200
-    response.content = "Attachment added successfully"
+    response.content = json.dumps({'id': sf_response[0].get('id')})
     return response
 
 

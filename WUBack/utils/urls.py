@@ -14,4 +14,6 @@ urlpatterns = [
     path('editGrade/', views.edit_grade),
     path('addGrade/', views.add_grade),
     path('removeGrade/', views.remove_grade),
+    path('getAnnouncements/', views.get_announcements),
+    path('createEventsMeetings/', views.create_events_meetings),
 ]

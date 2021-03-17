@@ -3,6 +3,7 @@ from usersauth.models import WU_User
 from django.views.decorators.csrf import csrf_exempt
 
 from django import forms
+from django.utils import timezone
 import logging
 import json
 import requests
@@ -10,7 +11,7 @@ import random
 import os
 
 from jwt import decode, InvalidTokenError
-from datetime import datetime, timezone
+from datetime import datetime
 from pyzoom import ZoomClient
 
 client = ZoomClient.from_environment()

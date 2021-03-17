@@ -8,6 +8,92 @@ from .tools import *
 
 
 @csrf_exempt
+def create_events_meetings(request):
+    response = HttpResponse()
+
+    access_token, instance_url = getSfInfo()
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    body = json.loads(request.body.decode())
+
+    events = body.get('records')
+
+    if not events:
+        response.content = "Events not provided"
+        response.status_code = 400
+        return response
+
+    event_dict_data = []
+
+    for event in events:
+        meeting_pass = str(random.randint(0, 999999)).zfill(6)
+        start_date = datetime.fromisoformat(event.get("Start_Date__c")[:-9])
+        end_date = datetime.fromisoformat(event.get("End_Date__c")[:-9])
+        duration = int((end_date-start_date).total_seconds()/60)
+        meeting = client.meetings.create_meeting(event.get('Subject__c'), start_time=event.get(
+            'Start_Date__c')[:-1], duration_min=duration, password=meeting_pass)
+
+        meeting_dict = dict(meeting)
+
+        event_dict = {
+            "Id": event.get('Id'),
+            "attributes": {
+                "type": "Event__c"
+            },
+            "Meeting_Link__c": meeting_dict.get("start_url"),
+            "Meeting_Password__c": meeting_pass,
+            "Meeting_Id__c": meeting_dict.get("id")
+        }
+
+        event_dict_data.append(event_dict)
+
+    event_dict = {"records": event_dict_data}
+
+    sf_response = requests.patch(instance_url + f"/services/data/v48.0/composite/sobjects/",
+                                 json=event_dict, headers={"Authorization": "Bearer "+access_token}).json()
+
+    if not sf_response[0].get('id'):
+        response.status_code = 400
+        response.content = "Wrong data, event not created"
+        return response
+
+    response.status_code = 200
+    response.content = json.dumps(
+        {'ids': [record.get('id') for record in sf_response]})
+    return response
+
+
+@ csrf_exempt
+def get_announcements(request):
+    response = HttpResponse(content_type='application/json')
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Subject__c,Message__c,Announced_On__c,Expires_On__c+FROM+Announcement__c", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    announcements_list = [{key: announcement[key] for key in announcement if key != 'attributes'}
+                          for announcement in sf_response.get('records')]
+
+    response.status_code = 200
+    response.content = json.dumps({"records": announcements_list})
+    return response
+
+
+@ csrf_exempt
 def add_grade(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")
@@ -51,7 +137,7 @@ def add_grade(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def edit_grade(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")
@@ -95,7 +181,7 @@ def edit_grade(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def remove_grade(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")
@@ -125,7 +211,7 @@ def remove_grade(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def create_change_group_request(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")
@@ -183,9 +269,9 @@ def create_change_group_request(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def get_change_group_request_info(request):
-    response = HttpResponse()
+    response = HttpResponse(content_type="application/json")
     token = request.COOKIES.get("access_token")
 
     if not token:
@@ -208,21 +294,24 @@ def get_change_group_request_info(request):
         response.status_code = 400
         return response
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Course__c,Type_of_classes__c+FROM+Didactic_Group__c+WHERE+Id='{from_didactic_group_id}'", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Course__c,Type_Of_Classes__c+FROM+Didactic_Group__c+WHERE+Id='{from_didactic_group_id}'", headers={
         "Authorization": "Bearer "+access_token}).json()
 
     course_id, type_of_classes = sf_response.get('records')[0].get(
-        'Course__c'), sf_response.get('records')[0].get('Type_of_classes__c')
+        'Course__c'), sf_response.get('records')[0].get('Type_Of_Classes__c')
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id+FROM+Didactic_Group__c+WHERE+Course__c='{course_id}'+AND+Type_of_classes__c='{type_of_classes}'", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Teacher_Name__c,Classes_Start_Date__c+FROM+Didactic_Group__c+WHERE+Course__c='{course_id}'+AND+Type_Of_Classes__c='{type_of_classes}'", headers={
         "Authorization": "Bearer "+access_token}).json()
 
-    response.content = f"{sf_response}"
+    groups_list = [{key: group[key] for key in group if key != 'attributes'}
+                   for group in sf_response.get('records') if group['Id'] != from_didactic_group_id]
+
+    response.content = json.dumps({'records': groups_list})
     response.status_code = 200
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def remove_change_group_request(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")
@@ -280,8 +369,14 @@ def get_my_course_info(request):
         course_attendee_list = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Didactic_Group_Attendee__c+WHERE+Didactic_Group__c='{didactic_group_id}'", headers={
             "Authorization": "Bearer "+access_token}).json()
 
+        logins = [attendee.get('Didactic_Group_Member_Login__c')
+                  for attendee in course_attendee_list.get('records')]
+
+        full_names = {user.username: {'first_name': user.first_name, 'last_name': user.last_name}
+                      for user in list(WU_User.objects.filter(username__in=logins))}
+
         course_info = {attendee.get('Id'): {"login": attendee.get(
-            'Didactic_Group_Member_Login__c'), "grades": []} for attendee in course_attendee_list.get('records')}
+            'Didactic_Group_Member_Login__c'), **full_names[attendee.get('Didactic_Group_Member_Login__c')], "grades": []} for attendee in course_attendee_list.get('records')}
 
         attendee_ids = "'" + "','".join(course_info.keys()) + "'"
 
@@ -311,7 +406,13 @@ def get_my_course_info(request):
         grades = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Grade_Value__c,Name+FROM+Grade__c+WHERE+Didactic_Group_Attendee__c='{attendee_id}'", headers={
             "Authorization": "Bearer "+access_token}).json()
 
-        course_info = {attendee_id: {"login": token.get('username'), "grades": [{"id": grade.get(
+        user = list(WU_User.objects.filter(username=token.get('username')))
+
+        if not user:
+            response.status_code = 404
+            return response
+
+        course_info = {attendee_id: {"login": token.get('username'), 'first_name': user[0].first_name, 'last_name': user[0].last_name, "grades": [{"id": grade.get(
             'Id'), "name": grade.get('Name'), "value": grade.get('Grade_Value__c')} for grade in grades.get('records')]}}
 
         response.content = json.dumps(course_info)
@@ -389,7 +490,7 @@ def search_courses(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def create_classes(request):
     response = HttpResponse()
 
@@ -441,7 +542,7 @@ def create_classes(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def get_schedule(request):
     response = HttpResponse(content_type='application/json')
     token = request.COOKIES.get("access_token")
@@ -479,7 +580,7 @@ def get_schedule(request):
     return response
 
 
-@csrf_exempt
+@ csrf_exempt
 def search_teacher(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")

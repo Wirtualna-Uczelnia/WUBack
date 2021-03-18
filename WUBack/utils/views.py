@@ -441,14 +441,14 @@ def get_general_course_info(request):
 
     body = json.loads(request.body.decode())
 
-    course_id = body.get("course_id")
+    didactic_group_id = body.get('didactic_group_id')
 
-    if not course_id:
-        response.content = "Course id not provided"
+    if not didactic_group_id:
+        response.content = "Didactic group id not provided"
         response.status_code = 400
         return response
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Assessment_methods__c,ECTS__c,Faculty__c,Literature__c,Statute__c,Subject__c+FROM+Course__c+WHERE+Id='{course_id}'", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Assessment_methods__c,ECTS__c,Faculty__c,Literature__c,Statute__c,Subject__c+FROM+Course__c+WHERE+Id+IN+(SELECT+Course__c+FROM+Didactic_Group__c+WHERE+Id='{didactic_group_id}')", headers={
         "Authorization": "Bearer "+access_token}).json()
 
     courses_info = [{key: course[key] for key in course if key != 'attributes'}
@@ -461,7 +461,7 @@ def get_general_course_info(request):
 
 @ csrf_exempt
 def search_courses(request):
-    response = HttpResponse()
+    response = HttpResponse(content_type='appication/json')
     token = request.COOKIES.get("access_token")
 
     if not token:
@@ -484,6 +484,22 @@ def search_courses(request):
 
     courses_list = [{key: course[key] for key in course if key != 'attributes'}
                     for course in sf_response.get('records') if pattern.lower() in course.get('Subject__c').lower()]
+
+    courses_ids = "'" + "','".join([course.get('Id')
+                                    for course in courses_list]) + "'"
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Course__c+FROM+Didactic_Group__c+WHERE+Course__c+IN+({courses_ids})", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    didactic_groups_dict = {s.get('Course__c'): []
+                            for s in sf_response.get('records')}
+
+    for s in sf_response.get('records'):
+        didactic_groups_dict[s.get('Course__c')].append(s.get('Id'))
+
+    for course in courses_list:
+        course['Didactic_Group__c'] = didactic_groups_dict[course.get(
+            'Id')]
 
     response.content = json.dumps({"records": courses_list})
     response.status_code = 200
@@ -564,6 +580,9 @@ def get_schedule(request):
         (SELECT+Didactic_Group__c+FROM+Didactic_Group_Attendee__c+WHERE+Didactic_Group_Member_Login__c='{username}')", headers={
         "Authorization": "Bearer "+access_token}).json()
 
+    events_ids_dict = {s.get('Meeting__c'): s.get('Id')
+                       for s in sf_response['records']}
+
     events_ids = "'" + \
         "','".join([m.get('Meeting__c')
                     for m in sf_response['records']]) + "'"
@@ -574,6 +593,9 @@ def get_schedule(request):
 
     events_list = [{key: event[key] for key in event if key != 'attributes'}
                    for event in sf_response.get('records')]
+
+    for e in events_list:
+        e['Didactic_Group__c'] = events_ids_dict[e.get('Id')]
 
     response.status_code = 200
     response.content = json.dumps({"records": events_list})

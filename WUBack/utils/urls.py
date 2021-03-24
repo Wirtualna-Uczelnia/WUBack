@@ -11,6 +11,7 @@ urlpatterns = [
     path('removeChangeGroupRequest/', views.remove_change_group_request),
     path('createChangeGroupRequest/', views.create_change_group_request),
     path('getChangeGroupRequestInfo/', views.get_change_group_request_info),
+    path('getChangeGroupRequests/', views.get_change_group_requests),
     path('editGrade/', views.edit_grade),
     path('addGrade/', views.add_grade),
     path('removeGrade/', views.remove_grade),

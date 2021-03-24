@@ -212,6 +212,62 @@ def remove_grade(request):
 
 
 @ csrf_exempt
+def get_change_group_requests(request):
+    response = HttpResponse(content_type="application/json")
+    token = request.COOKIES.get("access_token")
+
+    if not token:
+        response.content = "No access token cookie"
+        response.status_code = 401
+        return response
+
+    access_token, instance_url = check_access(token, "student")
+
+    if not access_token:
+        response.status_code = 401
+        return response
+
+    login = decode(token, JWT_SECRET).get('username')
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+From_Group__c,To_Group__c,Who__c+FROM+Group_Change_Request__c+WHERE+Who__c+IN+(SELECT+Id+FROM+Didactic_Group_Member__c+WHERE+Login__c='{login}')", headers={
+                               "Authorization": "Bearer "+access_token}).json()
+
+    change_group_requests = [{key: change_group_request[key] for key in change_group_request if key != 'attributes'}
+                             for change_group_request in sf_response.get('records')]
+
+    for change_group_request in change_group_requests:
+        change_group_request['From_Group__c'] = {
+            'Id': change_group_request['From_Group__c']}
+        change_group_request['To_Group__c'] = {
+            'Id': change_group_request['To_Group__c']}
+
+    group_ids = set([s.get('From_Group__c')
+                     for s in sf_response.get('records')])
+    group_ids = set([s.get('To_Group__c')
+                     for s in sf_response.get('records')]) | group_ids
+
+    group_ids = "'" + "','".join(group_ids) + "'"
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Teacher_Name__c,Classes_Start_Date__c,Classes_End_Date__c+FROM+Didactic_Group__c+WHERE+Id+IN+({group_ids})", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    for change_group_request in change_group_requests:
+        for didactic_group in sf_response.get('records'):
+            if didactic_group['Id'] == change_group_request['From_Group__c']['Id']:
+                change_group_request['From_Group__c'] = didactic_group
+                if change_group_request['From_Group__c'].get('attributes'):
+                    del change_group_request['From_Group__c']['attributes']
+            if didactic_group['Id'] == change_group_request['To_Group__c']['Id']:
+                change_group_request['To_Group__c'] = didactic_group
+                if change_group_request['To_Group__c'].get('attributes'):
+                    del change_group_request['To_Group__c']['attributes']
+
+    response.content = json.dumps({'records': change_group_requests})
+    response.status_code = 200
+    return response
+
+
+@ csrf_exempt
 def create_change_group_request(request):
     response = HttpResponse()
     token = request.COOKIES.get("access_token")
@@ -300,7 +356,7 @@ def get_change_group_request_info(request):
     course_id, type_of_classes = sf_response.get('records')[0].get(
         'Course__c'), sf_response.get('records')[0].get('Type_Of_Classes__c')
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Teacher_Name__c,Classes_Start_Date__c+FROM+Didactic_Group__c+WHERE+Course__c='{course_id}'+AND+Type_Of_Classes__c='{type_of_classes}'", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Teacher_Name__c,Classes_Start_Date__c,Classes_End_Date__c+FROM+Didactic_Group__c+WHERE+Course__c='{course_id}'+AND+Type_Of_Classes__c='{type_of_classes}'", headers={
         "Authorization": "Bearer "+access_token}).json()
 
     groups_list = [{key: group[key] for key in group if key != 'attributes'}
@@ -365,6 +421,27 @@ def get_my_course_info(request):
 
     didactic_group_id = body.get('didactic_group_id')
 
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Type_Of_Classes__c,Meeting__c+FROM+Didactic_Group__c+WHERE+Id='{didactic_group_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    if not sf_response.get('records'):
+        response.content = 'Didactic group not found'
+        response.status_code = 404
+        return response
+
+    type_of_classes, meeting_id = sf_response.get('records')[0].get(
+        'Type_Of_Classes__c'), sf_response.get('records')[0].get('Meeting__c')
+
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Subject__c+FROM+Event__c+WHERE+Id='{meeting_id}'", headers={
+        "Authorization": "Bearer "+access_token}).json()
+
+    if not sf_response.get('records'):
+        response.content = 'Event not found'
+        response.status_code = 404
+        return response
+
+    subject = sf_response.get('records')[0].get('Subject__c')
+
     if type_of_member == "Teacher":
         course_attendee_list = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Didactic_Group_Attendee__c+WHERE+Didactic_Group__c='{didactic_group_id}'", headers={
             "Authorization": "Bearer "+access_token}).json()
@@ -387,9 +464,13 @@ def get_my_course_info(request):
             course_info[grade.get('Didactic_Group_Attendee__c')]['grades'].append({"id": grade.get(
                 'Id'), "name": grade.get('Name'), "value": grade.get('Grade_Value__c')})
 
+        course_info.update(
+            {'subject': subject, 'type_of_classes': type_of_classes})
+
         response.content = json.dumps(course_info)
         response.status_code = 200
         return response
+
     elif type_of_member == "Student":
         sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+Id,Didactic_Group_Member_Login__c+FROM+Didactic_Group_Attendee__c+WHERE+Didactic_Group__c='{didactic_group_id}'+AND+Didactic_Group_Member_Login__c='{token.get('username')}'", headers={
             "Authorization": "Bearer "+access_token}).json()
@@ -414,6 +495,9 @@ def get_my_course_info(request):
 
         course_info = {attendee_id: {"login": token.get('username'), 'first_name': user[0].first_name, 'last_name': user[0].last_name, "grades": [{"id": grade.get(
             'Id'), "name": grade.get('Name'), "value": grade.get('Grade_Value__c')} for grade in grades.get('records')]}}
+
+        course_info.update(
+            {'subject': subject, 'type_of_classes': type_of_classes})
 
         response.content = json.dumps(course_info)
         response.status_code = 200

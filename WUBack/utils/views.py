@@ -227,9 +227,18 @@ def get_change_group_requests(request):
         response.status_code = 401
         return response
 
+    body = json.loads(request.body.decode())
+
+    from_didactic_group_id = body.get('didactic_group_id')
+
+    if not from_didactic_group_id:
+        response.content = "Didactic group id not provided"
+        response.status_code = 400
+        return response
+
     login = decode(token, JWT_SECRET).get('username')
 
-    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+From_Group__c,To_Group__c,Who__c+FROM+Group_Change_Request__c+WHERE+Who__c+IN+(SELECT+Id+FROM+Didactic_Group_Member__c+WHERE+Login__c='{login}')", headers={
+    sf_response = requests.get(instance_url + f"/services/data/v50.0/query/?q=SELECT+From_Group__c,To_Group__c,Who__c+FROM+Group_Change_Request__c+WHERE+From_Group__c='{from_didactic_group_id}'+AND+Who__c+IN+(SELECT+Id+FROM+Didactic_Group_Member__c+WHERE+Login__c='{login}')", headers={
                                "Authorization": "Bearer "+access_token}).json()
 
     change_group_requests = [{key: change_group_request[key] for key in change_group_request if key != 'attributes'}

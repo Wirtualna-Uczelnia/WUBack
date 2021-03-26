@@ -670,6 +670,7 @@ def add_team(request):
             return response
     else:
         response.status_code = 404
+        response.content = "Error with creating team"
         return response
 
     response.status_code = 200

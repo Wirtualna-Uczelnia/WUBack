@@ -342,7 +342,7 @@ def create_event(request):
         response.status_code = 401
         return response
 
-    access_token, instance_url = check_access(token, "teacher")
+    access_token, instance_url = check_access(token, "student")
 
     if not access_token:
         response.status_code = 401
